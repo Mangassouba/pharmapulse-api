@@ -1,0 +1,118 @@
+{
+  "auth": {
+    "login_success": "Login successful",
+    "logout_success": "Logged out successfully",
+    "register_success": "Registration successful",
+    "invalid_credentials": "Invalid email or password",
+    "account_inactive": "Your account is inactive or suspended",
+    "unauthorized": "Unauthorized access",
+    "forbidden": "You do not have the required permissions",
+    "token_expired": "Session expired, please log in again",
+    "token_invalid": "Invalid token",
+    "email_taken": "This email is already used in this pharmacy",
+    "password_mismatch": "Passwords do not match"
+  },
+  "pharmacy": {
+    "created": "Pharmacy created successfully",
+    "updated": "Pharmacy updated",
+    "deleted": "Pharmacy deleted",
+    "not_found": "Pharmacy not found",
+    "license_taken": "This license number is already used"
+  },
+  "product": {
+    "created": "Product created successfully",
+    "updated": "Product updated",
+    "deleted": "Product deleted",
+    "not_found": "Product not found",
+    "barcode_taken": "This barcode is already in use",
+    "insufficient_stock": "Insufficient stock for {{name}} (available: {{available}}, requested: {{requested}})",
+    "list_success": "Products retrieved successfully"
+  },
+  "category": {
+    "created": "Category created",
+    "updated": "Category updated",
+    "deleted": "Category deleted",
+    "not_found": "Category not found",
+    "name_taken": "This category name already exists"
+  },
+  "sale": {
+    "created": "Sale recorded successfully",
+    "updated": "Sale updated",
+    "deleted": "Sale cancelled",
+    "not_found": "Sale not found",
+    "list_success": "Sales retrieved",
+    "invoice_generated": "Invoice generated"
+  },
+  "reception": {
+    "created": "Reception recorded successfully",
+    "updated": "Reception updated",
+    "deleted": "Reception cancelled",
+    "not_found": "Reception not found",
+    "completed": "Reception completed, stocks updated",
+    "list_success": "Receptions retrieved"
+  },
+  "order": {
+    "created": "Order created successfully",
+    "updated": "Order updated",
+    "cancelled": "Order cancelled",
+    "not_found": "Order not found",
+    "list_success": "Orders retrieved"
+  },
+  "batch": {
+    "created": "Batch created successfully",
+    "updated": "Batch updated",
+    "deleted": "Batch deleted",
+    "not_found": "Batch not found",
+    "number_taken": "This batch number already exists",
+    "expired": "This batch is expired",
+    "list_success": "Batches retrieved"
+  },
+  "inventory": {
+    "created": "Inventory recorded successfully",
+    "updated": "Inventory updated",
+    "not_found": "Inventory not found",
+    "applied": "Stock correction applied",
+    "list_success": "Inventories retrieved"
+  },
+  "movement": {
+    "list_success": "Movements retrieved",
+    "not_found": "Movement not found"
+  },
+  "user": {
+    "created": "User created successfully",
+    "updated": "User updated",
+    "deleted": "User deleted",
+    "not_found": "User not found",
+    "list_success": "Users retrieved",
+    "password_changed": "Password changed successfully",
+    "profile_updated": "Profile updated"
+  },
+  "notification": {
+    "list_success": "Notifications retrieved",
+    "marked_read": "Notifications marked as read",
+    "deleted": "Notification deleted"
+  },
+  "dashboard": {
+    "success": "Dashboard data retrieved"
+  },
+  "validation": {
+    "required": "Field {{field}} is required",
+    "invalid_email": "Invalid email address",
+    "min_length": "{{field}} must be at least {{min}} characters",
+    "max_length": "{{field}} must not exceed {{max}} characters",
+    "min_value": "{{field}} must be greater than or equal to {{min}}",
+    "invalid_type": "Invalid value type for {{field}}",
+    "positive": "{{field}} must be a positive number"
+  },
+  "error": {
+    "internal": "Internal server error",
+    "not_found": "Resource not found",
+    "bad_request": "Bad request",
+    "conflict": "Data conflict",
+    "validation": "Validation error",
+    "rate_limit": "Too many requests, please try again later"
+  },
+  "pagination": {
+    "success": "Data retrieved"
+  }
+}

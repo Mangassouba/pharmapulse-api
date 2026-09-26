@@ -1,0 +1,118 @@
+{
+  "auth": {
+    "login_success": "Connexion réussie",
+    "logout_success": "Déconnexion réussie",
+    "register_success": "Inscription réussie",
+    "invalid_credentials": "Email ou mot de passe incorrect",
+    "account_inactive": "Votre compte est inactif ou suspendu",
+    "unauthorized": "Accès non autorisé",
+    "forbidden": "Vous n'avez pas les droits nécessaires",
+    "token_expired": "Session expirée, veuillez vous reconnecter",
+    "token_invalid": "Token invalide",
+    "email_taken": "Cet email est déjà utilisé dans cette pharmacie",
+    "password_mismatch": "Les mots de passe ne correspondent pas"
+  },
+  "pharmacy": {
+    "created": "Pharmacie créée avec succès",
+    "updated": "Pharmacie mise à jour",
+    "deleted": "Pharmacie supprimée",
+    "not_found": "Pharmacie introuvable",
+    "license_taken": "Ce numéro de licence est déjà utilisé"
+  },
+  "product": {
+    "created": "Produit créé avec succès",
+    "updated": "Produit mis à jour",
+    "deleted": "Produit supprimé",
+    "not_found": "Produit introuvable",
+    "barcode_taken": "Ce code-barres est déjà utilisé",
+    "insufficient_stock": "Stock insuffisant pour le produit {{name}} (disponible: {{available}}, demandé: {{requested}})",
+    "list_success": "Produits récupérés avec succès"
+  },
+  "category": {
+    "created": "Catégorie créée",
+    "updated": "Catégorie mise à jour",
+    "deleted": "Catégorie supprimée",
+    "not_found": "Catégorie introuvable",
+    "name_taken": "Ce nom de catégorie existe déjà"
+  },
+  "sale": {
+    "created": "Vente enregistrée avec succès",
+    "updated": "Vente mise à jour",
+    "deleted": "Vente annulée",
+    "not_found": "Vente introuvable",
+    "list_success": "Ventes récupérées",
+    "invoice_generated": "Facture générée"
+  },
+  "reception": {
+    "created": "Réception enregistrée avec succès",
+    "updated": "Réception mise à jour",
+    "deleted": "Réception annulée",
+    "not_found": "Réception introuvable",
+    "completed": "Réception complétée, stocks mis à jour",
+    "list_success": "Réceptions récupérées"
+  },
+  "order": {
+    "created": "Commande créée avec succès",
+    "updated": "Commande mise à jour",
+    "cancelled": "Commande annulée",
+    "not_found": "Commande introuvable",
+    "list_success": "Commandes récupérées"
+  },
+  "batch": {
+    "created": "Lot créé avec succès",
+    "updated": "Lot mis à jour",
+    "deleted": "Lot supprimé",
+    "not_found": "Lot introuvable",
+    "number_taken": "Ce numéro de lot existe déjà",
+    "expired": "Ce lot est expiré",
+    "list_success": "Lots récupérés"
+  },
+  "inventory": {
+    "created": "Inventaire enregistré avec succès",
+    "updated": "Inventaire mis à jour",
+    "not_found": "Inventaire introuvable",
+    "applied": "Correction de stock appliquée",
+    "list_success": "Inventaires récupérés"
+  },
+  "movement": {
+    "list_success": "Mouvements récupérés",
+    "not_found": "Mouvement introuvable"
+  },
+  "user": {
+    "created": "Utilisateur créé avec succès",
+    "updated": "Utilisateur mis à jour",
+    "deleted": "Utilisateur supprimé",
+    "not_found": "Utilisateur introuvable",
+    "list_success": "Utilisateurs récupérés",
+    "password_changed": "Mot de passe modifié avec succès",
+    "profile_updated": "Profil mis à jour"
+  },
+  "notification": {
+    "list_success": "Notifications récupérées",
+    "marked_read": "Notifications marquées comme lues",
+    "deleted": "Notification supprimée"
+  },
+  "dashboard": {
+    "success": "Données du tableau de bord récupérées"
+  },
+  "validation": {
+    "required": "Le champ {{field}} est obligatoire",
+    "invalid_email": "Email invalide",
+    "min_length": "{{field}} doit contenir au moins {{min}} caractères",
+    "max_length": "{{field}} ne doit pas dépasser {{max}} caractères",
+    "min_value": "{{field}} doit être supérieur ou égal à {{min}}",
+    "invalid_type": "Type de valeur invalide pour {{field}}",
+    "positive": "{{field}} doit être un nombre positif"
+  },
+  "error": {
+    "internal": "Erreur interne du serveur",
+    "not_found": "Ressource introuvable",
+    "bad_request": "Requête invalide",
+    "conflict": "Conflit de données",
+    "validation": "Erreur de validation",
+    "rate_limit": "Trop de requêtes, veuillez réessayer plus tard"
+  },
+  "pagination": {
+    "success": "Données récupérées"
+  }
+}
