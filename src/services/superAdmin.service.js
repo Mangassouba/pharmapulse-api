@@ -1,18 +1,25 @@
 import bcrypt from 'bcryptjs'
-import prisma from '../config/database.js'
+import { eq, and, or, isNull, gte, lte, inArray, desc, count, sum } from 'drizzle-orm'
+import db from '../config/database.js'
+import {
+  superAdmins, superAdminLogs, pharmacy as pharmacyTable, users, products, sales, receptions,
+  category, subscriptions, subscriptionPayments, notifications,
+} from '../db/schema.js'
+import { contains, withCounts } from '../db/helpers.js'
 import { signToken } from '../config/jwt.js'
 import { getPaginationParams } from '../utils/response.js'
+import { subscriptionAmount, DEFAULT_PLAN, CURRENCY, MONTHLY_PRICE, TRIAL_DAYS } from '../utils/subscription.js'
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
 export async function superAdminLogin(email, password, req) {
-  const admin = await prisma.superAdmins.findUnique({ where: { email } })
+  const admin = await db.query.superAdmins.findFirst({ where: eq(superAdmins.email, email) })
   if (!admin || !admin.is_active) throw { statusCode: 401, message: 'Identifiants incorrects ou compte inactif.' }
 
   const valid = await bcrypt.compare(password, admin.password)
   if (!valid) throw { statusCode: 401, message: 'Identifiants incorrects.' }
 
-  await prisma.superAdmins.update({ where: { id: admin.id }, data: { last_login: new Date() } })
+  await db.update(superAdmins).set({ last_login: new Date() }).where(eq(superAdmins.id, admin.id))
   await logAction(admin.id, 'LOGIN', 'Connexion au panel SuperAdmin', null, null, req)
 
   const token = signToken({ id: admin.id, role: 'SUPER_ADMIN', email: admin.email, isSuperAdmin: true })
@@ -22,45 +29,46 @@ export async function superAdminLogin(email, password, req) {
 
 // ── Platform stats ────────────────────────────────────────────────────────────
 
+const countWhere = (table, where) =>
+  db.select({ n: count() }).from(table).where(where).then(([row]) => row.n)
+
 export async function getPlatformStats() {
   const [
     totalPharmacies, activePharmacies, suspendedPharmacies,
-    totalUsers, totalSalesAgg, expiringSubs,
+    totalUsers, [totalSalesAgg], expiringSubs,
   ] = await Promise.all([
-    prisma.pharmacy.count({ where: { deletedAt: null } }),
-    prisma.pharmacy.count({ where: { status: 'ACTIVE', deletedAt: null } }),
-    prisma.pharmacy.count({ where: { status: 'SUSPENDED', deletedAt: null } }),
-    prisma.users.count({ where: { deletedAt: null } }),
-    prisma.sales.aggregate({ _sum: { total_amount: true }, _count: true }),
-    prisma.subscriptions.count({
-      where: {
-        status: { in: ['ACTIVE', 'TRIAL'] },
-        end_date: { lte: new Date(Date.now() + 30 * 86400000) },
-      },
-    }),
+    countWhere(pharmacyTable, isNull(pharmacyTable.deletedAt)),
+    countWhere(pharmacyTable, and(eq(pharmacyTable.status, 'ACTIVE'), isNull(pharmacyTable.deletedAt))),
+    countWhere(pharmacyTable, and(eq(pharmacyTable.status, 'SUSPENDED'), isNull(pharmacyTable.deletedAt))),
+    countWhere(users, isNull(users.deletedAt)),
+    db.select({ sum: sum(sales.total_amount), count: count() }).from(sales),
+    countWhere(subscriptions, and(
+      inArray(subscriptions.status, ['ACTIVE', 'TRIAL']),
+      lte(subscriptions.end_date, new Date(Date.now() + 30 * 86400000)),
+    )),
   ])
 
   // Revenue this month
   const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-  const monthRevenue = await prisma.subscriptionPayments.aggregate({
-    where: { paid_at: { gte: startOfMonth } },
-    _sum: { amount: true },
-  })
+  const [monthRevenue] = await db
+    .select({ sum: sum(subscriptionPayments.amount) })
+    .from(subscriptionPayments)
+    .where(gte(subscriptionPayments.paid_at, startOfMonth))
 
   // Recent registrations (last 7 days)
-  const recentPharmacies = await prisma.pharmacy.findMany({
-    where: { createdAt: { gte: new Date(Date.now() - 7 * 86400000) } },
-    select: { id: true, name: true, city: true, status: true, createdAt: true },
-    orderBy: { createdAt: 'desc' },
-    take: 5,
+  const recentPharmacies = await db.query.pharmacy.findMany({
+    where: gte(pharmacyTable.createdAt, new Date(Date.now() - 7 * 86400000)),
+    columns: { id: true, name: true, city: true, status: true, createdAt: true },
+    orderBy: [desc(pharmacyTable.createdAt)],
+    limit: 5,
   })
 
   return {
     pharmacies: { total: totalPharmacies, active: activePharmacies, suspended: suspendedPharmacies, pending: totalPharmacies - activePharmacies - suspendedPharmacies },
     users: { total: totalUsers },
-    sales: { total: totalSalesAgg._count, amount: parseFloat(totalSalesAgg._sum.total_amount || 0) },
+    sales: { total: totalSalesAgg.count, amount: parseFloat(totalSalesAgg.sum || 0) },
     subscriptions: { expiringSoon: expiringSubs },
-    revenue: { thisMonth: parseFloat(monthRevenue._sum.amount || 0) },
+    revenue: { thisMonth: parseFloat(monthRevenue.sum || 0) },
     recentPharmacies,
   }
 }
@@ -71,88 +79,97 @@ export async function listPharmacies(query) {
   const { page, pageSize, skip, take } = getPaginationParams(query)
   const { search, status } = query
 
-  const where = {
-    deletedAt: null,
-    ...(search && { name: { contains: search, mode: 'insensitive' } }),
-    ...(status && { status }),
-  }
+  const where = and(
+    isNull(pharmacyTable.deletedAt),
+    search ? contains(pharmacyTable.name, search) : undefined,
+    status ? eq(pharmacyTable.status, status) : undefined,
+  )
 
-  const [pharmacies, total] = await prisma.$transaction([
-    prisma.pharmacy.findMany({
-      where, skip, take,
-      include: {
-        subscription: { select: { plan: true, status: true, end_date: true } },
-        _count: { select: { users: true, products: true, sales: true } },
-      },
-      orderBy: { createdAt: 'desc' },
+  const [rows, total] = await Promise.all([
+    db.query.pharmacy.findMany({
+      where, offset: skip, limit: take,
+      with: { subscription: { columns: { plan: true, status: true, end_date: true } } },
+      orderBy: [desc(pharmacyTable.createdAt)],
     }),
-    prisma.pharmacy.count({ where }),
+    countWhere(pharmacyTable, where),
   ])
+
+  const pharmacies = await withCounts(rows, {
+    users:    [users, users.pharmacyId],
+    products: [products, products.pharmacyId],
+    sales:    [sales, sales.pharmacyId],
+  })
 
   return { pharmacies, total, page, pageSize }
 }
 
 export async function getPharmacyDetail(id, req) {
-  const pharmacy = await prisma.pharmacy.findUnique({
-    where: { id },
-    include: {
-      subscription: { include: { payments: { orderBy: { paid_at: 'desc' }, take: 10 } } },
-      users:        { where: { deletedAt: null }, select: { id: true, name: true, email: true, role: true, status: true, last_login: true } },
-      _count:       { select: { products: true, sales: true, receptions: true } },
+  const pharmacy = await db.query.pharmacy.findFirst({
+    where: eq(pharmacyTable.id, id),
+    with: {
+      subscription: {
+        with: {
+          payments: { orderBy: (p, { desc }) => [desc(p.paid_at)], limit: 10 },
+        },
+      },
+      users: {
+        where: (u, { isNull }) => isNull(u.deletedAt),
+        columns: { id: true, name: true, email: true, role: true, status: true, last_login: true },
+      },
     },
   })
   if (!pharmacy) throw { statusCode: 404, message: req.t('pharmacy.not_found') }
-  return pharmacy
+
+  const [withCount] = await withCounts([pharmacy], {
+    products:   [products, products.pharmacyId],
+    sales:      [sales, sales.pharmacyId],
+    receptions: [receptions, receptions.pharmacyId],
+  })
+  return withCount
 }
 
 export async function createPharmacy(data, adminId, req) {
   const { pharmacyName, pharmacyEmail, pharmacyPhone, pharmacyAddress, pharmacyCity, pharmacyCountry,
-    pharmacyLicense, plan = 'STARTER', trialDays = 30,
+    pharmacyLicense, trialDays = TRIAL_DAYS,
     adminName, adminEmail, adminPassword } = data
 
   if (pharmacyLicense) {
-    const ex = await prisma.pharmacy.findUnique({ where: { license_number: pharmacyLicense } })
+    const ex = await db.query.pharmacy.findFirst({ where: eq(pharmacyTable.license_number, pharmacyLicense) })
     if (ex) throw { statusCode: 409, message: req.t('pharmacy.license_taken') }
   }
 
   const hashed = await bcrypt.hash(adminPassword, 12)
   const trialEnd = new Date(Date.now() + trialDays * 86400000)
-  const subEnd   = new Date(Date.now() + 365 * 86400000)
 
-  const result = await prisma.$transaction(async (tx) => {
-    const pharmacy = await tx.pharmacy.create({
-      data: {
-        name: pharmacyName, email: pharmacyEmail, phone: pharmacyPhone,
-        address: pharmacyAddress, city: pharmacyCity, country: pharmacyCountry,
-        license_number: pharmacyLicense || null,
-        status: 'ACTIVE', is_active: true,
-      },
-    })
+  const result = await db.transaction(async (tx) => {
+    const [pharmacy] = await tx.insert(pharmacyTable).values({
+      name: pharmacyName, email: pharmacyEmail, phone: pharmacyPhone,
+      address: pharmacyAddress, city: pharmacyCity, country: pharmacyCountry,
+      license_number: pharmacyLicense || null,
+      status: 'ACTIVE', is_active: true,
+    }).returning()
 
-    const adminUser = await tx.users.create({
-      data: { name: adminName, email: adminEmail, password: hashed, role: 'ADMIN', status: 'ACTIVE', pharmacyId: pharmacy.id },
-    })
+    const [adminUser] = await tx.insert(users).values({
+      name: adminName, email: adminEmail, password: hashed, role: 'ADMIN', status: 'ACTIVE', pharmacyId: pharmacy.id,
+    }).returning()
 
     // Seed categories
-    await tx.category.createMany({
-      data: ['Analgésique','Antibiotique','Anti-inflammatoire','Antihypertenseur','Antidiabétique',
+    await tx.insert(category).values(
+      ['Analgésique','Antibiotique','Anti-inflammatoire','Antihypertenseur','Antidiabétique',
         'Antihistaminique','Gastro-entérologie','Pédiatrie','Complément alimentaire','Dermatologie']
         .map(name => ({ name })),
-      skipDuplicates: true,
-    })
+    ).onConflictDoNothing()
 
-    const subscription = await tx.subscriptions.create({
-      data: {
-        pharmacyId: pharmacy.id,
-        plan,
-        status: 'TRIAL',
-        start_date: new Date(),
-        end_date: subEnd,
-        trial_end_date: trialEnd,
-        amount: planAmount(plan),
-        currency: 'XOF',
-      },
-    })
+    const [subscription] = await tx.insert(subscriptions).values({
+      pharmacyId: pharmacy.id,
+      plan: DEFAULT_PLAN,
+      status: 'TRIAL',
+      start_date: new Date(),
+      end_date: trialEnd,
+      trial_end_date: trialEnd,
+      amount: 0,
+      currency: CURRENCY,
+    }).returning()
 
     return { pharmacy, adminUser, subscription }
   })
@@ -163,42 +180,38 @@ export async function createPharmacy(data, adminId, req) {
 }
 
 export async function updatePharmacyStatus(id, status, reason, adminId, req) {
-  const pharmacy = await prisma.pharmacy.findUnique({ where: { id } })
+  const pharmacy = await db.query.pharmacy.findFirst({ where: eq(pharmacyTable.id, id) })
   if (!pharmacy) throw { statusCode: 404, message: req.t('pharmacy.not_found') }
 
   const isActive = status === 'ACTIVE'
-  await prisma.pharmacy.update({
-    where: { id },
-    data: {
+  await db.update(pharmacyTable)
+    .set({
       status,
       is_active: isActive,
       suspended_at:     !isActive ? new Date() : null,
       suspended_reason: !isActive ? (reason || null) : null,
-    },
-  })
+    })
+    .where(eq(pharmacyTable.id, id))
 
   // Notify pharmacy admin
-  await prisma.notifications.create({
-    data: {
-      pharmacyId: id,
-      title: isActive ? '✅ Pharmacie réactivée' : '⚠️ Pharmacie suspendue',
-      message: isActive
-        ? 'Votre pharmacie a été réactivée. Vous pouvez à nouveau utiliser PharmaPulse.'
-        : `Votre pharmacie a été suspendue. Raison: ${reason || 'Non précisée'}. Contactez le support.`,
-      type: isActive ? 'SUCCESS' : 'ERROR',
-    },
+  await db.insert(notifications).values({
+    pharmacyId: id,
+    title: isActive ? '✅ Pharmacie réactivée' : '⚠️ Pharmacie suspendue',
+    message: isActive
+      ? 'Votre pharmacie a été réactivée. Vous pouvez à nouveau utiliser PharmaPulse.'
+      : `Votre pharmacie a été suspendue. Raison: ${reason || 'Non précisée'}. Contactez le support.`,
+    type: isActive ? 'SUCCESS' : 'ERROR',
   })
 
   await logAction(adminId, `PHARMACY_${status}`, `Statut changé: ${pharmacy.name} → ${status}. ${reason || ''}`, 'pharmacy', id, req)
 }
 
 export async function updatePharmacy(id, data, adminId, req) {
-  const pharmacy = await prisma.pharmacy.findUnique({ where: { id } })
+  const pharmacy = await db.query.pharmacy.findFirst({ where: eq(pharmacyTable.id, id) })
   if (!pharmacy) throw { statusCode: 404, message: req.t('pharmacy.not_found') }
 
-  const updated = await prisma.pharmacy.update({
-    where: { id },
-    data: {
+  await db.update(pharmacyTable)
+    .set({
       name:           data.name           ?? undefined,
       email:          data.email          ?? undefined,
       phone:          data.phone          ?? undefined,
@@ -207,8 +220,12 @@ export async function updatePharmacy(id, data, adminId, req) {
       country:        data.country        ?? undefined,
       license_number: data.license_number ?? undefined,
       max_users:      data.max_users      ?? undefined,
-    },
-    include: { subscription: true },
+    })
+    .where(eq(pharmacyTable.id, id))
+
+  const updated = await db.query.pharmacy.findFirst({
+    where: eq(pharmacyTable.id, id),
+    with: { subscription: true },
   })
 
   await logAction(adminId, 'UPDATE_PHARMACY', `Pharmacie modifiée: ${pharmacy.name}`, 'pharmacy', id, req)
@@ -216,79 +233,90 @@ export async function updatePharmacy(id, data, adminId, req) {
 }
 
 export async function deletePharmacy(id, adminId, req) {
-  const pharmacy = await prisma.pharmacy.findUnique({ where: { id } })
+  const pharmacy = await db.query.pharmacy.findFirst({ where: eq(pharmacyTable.id, id) })
   if (!pharmacy) throw { statusCode: 404, message: req.t('pharmacy.not_found') }
 
-  await prisma.pharmacy.update({ where: { id }, data: { deletedAt: new Date(), status: 'INACTIVE', is_active: false } })
+  await db.update(pharmacyTable)
+    .set({ deletedAt: new Date(), status: 'INACTIVE', is_active: false })
+    .where(eq(pharmacyTable.id, id))
   await logAction(adminId, 'DELETE_PHARMACY', `Pharmacie supprimée: ${pharmacy.name}`, 'pharmacy', id, req)
 }
 
 // ── Subscriptions management ──────────────────────────────────────────────────
 
 export async function renewSubscription(pharmacyId, data, adminId, req) {
-  const { plan, months = 12, amount, method = 'CASH', reference } = data
+  const { months, method = 'CASH', reference } = data
 
-  const sub = await prisma.subscriptions.findUnique({ where: { pharmacyId } })
-  if (!sub) throw { statusCode: 404, message: 'Abonnement introuvable.' }
+  const pharmacy = await db.query.pharmacy.findFirst({ where: eq(pharmacyTable.id, pharmacyId) })
+  if (!pharmacy) throw { statusCode: 404, message: req.t('pharmacy.not_found') }
 
-  const now      = new Date()
-  const baseDate = sub.end_date > now ? sub.end_date : now
-  const newEnd   = new Date(baseDate.getTime() + months * 30 * 86400000)
+  // Pharmacies created via public registration before trials existed have no subscription yet
+  const sub = await db.query.subscriptions.findFirst({ where: eq(subscriptions.pharmacyId, pharmacyId) })
 
-  const updated = await prisma.$transaction(async (tx) => {
-    const updatedSub = await tx.subscriptions.update({
-      where: { pharmacyId },
-      data: {
-        plan:     plan ?? sub.plan,
-        status:   'ACTIVE',
-        end_date: newEnd,
-        amount:   amount ?? planAmount(plan ?? sub.plan),
-      },
-    })
+  const newAmount = subscriptionAmount(months)
+  const now       = new Date()
+  const baseDate  = sub && sub.end_date > now ? sub.end_date : now
+  const newEnd    = new Date(baseDate.getTime() + months * 30 * 86400000)
 
-    await tx.subscriptionPayments.create({
-      data: {
-        subscriptionId: sub.id,
-        amount:         amount ?? planAmount(plan ?? sub.plan),
-        method,
-        reference:      reference || null,
-        period_start:   baseDate,
-        period_end:     newEnd,
-        notes:          `Renouvellement ${months} mois — Plan ${plan ?? sub.plan}`,
-      },
+  const updated = await db.transaction(async (tx) => {
+    let updatedSub
+    if (sub) {
+      [updatedSub] = await tx.update(subscriptions)
+        .set({ status: 'ACTIVE', end_date: newEnd, amount: newAmount, currency: CURRENCY })
+        .where(eq(subscriptions.pharmacyId, pharmacyId))
+        .returning()
+    } else {
+      [updatedSub] = await tx.insert(subscriptions).values({
+        pharmacyId,
+        plan:       DEFAULT_PLAN,
+        status:     'ACTIVE',
+        start_date: now,
+        end_date:   newEnd,
+        amount:     newAmount,
+        currency:   CURRENCY,
+      }).returning()
+    }
+
+    await tx.insert(subscriptionPayments).values({
+      subscriptionId: updatedSub.id,
+      amount:         newAmount,
+      currency:       CURRENCY,
+      method,
+      reference:      reference || null,
+      period_start:   baseDate,
+      period_end:     newEnd,
+      notes:          `${sub ? 'Renouvellement' : 'Souscription'} ${months} mois × ${MONTHLY_PRICE} ${CURRENCY}`,
     })
 
     // Reactivate pharmacy if suspended for expiry
-    await tx.pharmacy.update({
-      where: { id: pharmacyId },
-      data: { status: 'ACTIVE', is_active: true, suspended_at: null, suspended_reason: null },
-    })
+    await tx.update(pharmacyTable)
+      .set({ status: 'ACTIVE', is_active: true, suspended_at: null, suspended_reason: null })
+      .where(eq(pharmacyTable.id, pharmacyId))
 
     // Notify
-    await tx.notifications.create({
-      data: {
-        pharmacyId,
-        title:   '✅ Abonnement renouvelé',
-        message: `Votre abonnement ${plan ?? sub.plan} est renouvelé jusqu'au ${newEnd.toLocaleDateString('fr-FR')}.`,
-        type:    'SUCCESS',
-      },
+    await tx.insert(notifications).values({
+      pharmacyId,
+      title:   sub ? '✅ Abonnement renouvelé' : '✅ Abonnement activé',
+      message: `Votre abonnement de ${months} mois (${newAmount} ${CURRENCY}) est ${sub ? 'renouvelé' : 'activé'} jusqu'au ${newEnd.toLocaleDateString('fr-FR')}.`,
+      type:    'SUCCESS',
     })
 
     return updatedSub
   })
 
-  await logAction(adminId, 'RENEW_SUBSCRIPTION', `Renouvellement ${months}m pour pharmacyId=${pharmacyId}`, 'subscription', sub.id, req)
+  await logAction(adminId, 'RENEW_SUBSCRIPTION', `Renouvellement ${months}m pour pharmacyId=${pharmacyId}`, 'subscription', updated.id, req)
   return updated
 }
 
 export async function getSubscriptionPayments(pharmacyId, query) {
   const { page, pageSize, skip, take } = getPaginationParams(query)
-  const sub = await prisma.subscriptions.findUnique({ where: { pharmacyId } })
+  const sub = await db.query.subscriptions.findFirst({ where: eq(subscriptions.pharmacyId, pharmacyId) })
   if (!sub) return { payments: [], total: 0, page, pageSize }
 
-  const [payments, total] = await prisma.$transaction([
-    prisma.subscriptionPayments.findMany({ where: { subscriptionId: sub.id }, skip, take, orderBy: { paid_at: 'desc' } }),
-    prisma.subscriptionPayments.count({ where: { subscriptionId: sub.id } }),
+  const where = eq(subscriptionPayments.subscriptionId, sub.id)
+  const [payments, total] = await Promise.all([
+    db.query.subscriptionPayments.findMany({ where, offset: skip, limit: take, orderBy: [desc(subscriptionPayments.paid_at)] }),
+    countWhere(subscriptionPayments, where),
   ])
 
   return { payments, total, page, pageSize }
@@ -300,59 +328,53 @@ export async function listAllUsers(query) {
   const { page, pageSize, skip, take } = getPaginationParams(query)
   const { search, role, pharmacyId, status } = query
 
-  const where = {
-    deletedAt: null,
-    ...(search && { OR: [{ name: { contains: search, mode: 'insensitive' } }, { email: { contains: search, mode: 'insensitive' } }] }),
-    ...(role      && { role }),
-    ...(status    && { status }),
-    ...(pharmacyId && { pharmacyId: parseInt(pharmacyId) }),
-  }
+  const where = and(
+    isNull(users.deletedAt),
+    search     ? or(contains(users.name, search), contains(users.email, search)) : undefined,
+    role       ? eq(users.role, role) : undefined,
+    status     ? eq(users.status, status) : undefined,
+    pharmacyId ? eq(users.pharmacyId, parseInt(pharmacyId)) : undefined,
+  )
 
-  const [users, total] = await prisma.$transaction([
-    prisma.users.findMany({
-      where, skip, take,
-      select: { id: true, name: true, email: true, role: true, status: true, last_login: true, createdAt: true,
-        pharmacy: { select: { id: true, name: true, status: true } } },
-      orderBy: { createdAt: 'desc' },
+  const [rows, total] = await Promise.all([
+    db.query.users.findMany({
+      where, offset: skip, limit: take,
+      columns: { id: true, name: true, email: true, role: true, status: true, last_login: true, createdAt: true },
+      with: { pharmacy: { columns: { id: true, name: true, status: true } } },
+      orderBy: [desc(users.createdAt)],
     }),
-    prisma.users.count({ where }),
+    countWhere(users, where),
   ])
 
-  return { users, total, page, pageSize }
+  return { users: rows, total, page, pageSize }
 }
 
 // ── Audit logs ────────────────────────────────────────────────────────────────
 
 export async function getSuperAdminLogs(query) {
   const { page, pageSize, skip, take } = getPaginationParams(query)
-  const [logs, total] = await prisma.$transaction([
-    prisma.superAdminLogs.findMany({
-      skip, take,
-      orderBy: { createdAt: 'desc' },
-      include: { superAdmin: { select: { id: true, name: true, email: true } } },
+  const [logs, [{ total }]] = await Promise.all([
+    db.query.superAdminLogs.findMany({
+      offset: skip, limit: take,
+      orderBy: [desc(superAdminLogs.createdAt)],
+      with: { superAdmin: { columns: { id: true, name: true, email: true } } },
     }),
-    prisma.superAdminLogs.count(),
+    db.select({ total: count() }).from(superAdminLogs),
   ])
   return { logs, total, page, pageSize }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function planAmount(plan) {
-  return { FREE: 0, STARTER: 15000, PRO: 35000, ENTERPRISE: 75000 }[plan] || 15000
-}
-
 async function logAction(superAdminId, action, description, targetType, targetId, req) {
   try {
-    await prisma.superAdminLogs.create({
-      data: {
-        superAdminId,
-        action,
-        description,
-        target_type: targetType || null,
-        target_id:   targetId   || null,
-        ip_address:  req?.ip    || null,
-      },
+    await db.insert(superAdminLogs).values({
+      superAdminId,
+      action,
+      description,
+      target_type: targetType || null,
+      target_id:   targetId   || null,
+      ip_address:  req?.ip    || null,
     })
   } catch {}
 }

@@ -1,6 +1,5 @@
 import * as orderService from '../services/order.service.js'
 import { successResponse, paginatedResponse } from '../utils/response.js'
-import prisma from '../config/database.js'
 
 export async function list(req, res, next) {
   try {
@@ -11,13 +10,7 @@ export async function list(req, res, next) {
 
 export async function getOne(req, res, next) {
   try {
-    const order = await prisma.orders.findFirst({
-      where: { id: parseInt(req.params.id), pharmacyId: req.user.pharmacyId, deletedAt: null },
-      include: {
-        user:    { select: { id: true, name: true } },
-        details: { include: { product: { select: { id: true, name: true } } } },
-      },
-    })
+    const order = await orderService.getOrderById(parseInt(req.params.id), req.user.pharmacyId)
     if (!order) return res.status(404).json({ success: false, message: req.t('order.not_found') })
     return successResponse(res, { data: order })
   } catch (err) { next(err) }
@@ -39,10 +32,8 @@ export async function updateStatus(req, res, next) {
 
 export async function remove(req, res, next) {
   try {
-    await prisma.orders.update({
-      where: { id: parseInt(req.params.id) },
-      data:  { deletedAt: new Date(), status: 'CANCELLED' },
-    })
+    const cancelled = await orderService.cancelOrder(parseInt(req.params.id), req.user.pharmacyId)
+    if (!cancelled) return res.status(404).json({ success: false, message: req.t('order.not_found') })
     return successResponse(res, { message: req.t('order.cancelled') })
   } catch (err) { next(err) }
 }

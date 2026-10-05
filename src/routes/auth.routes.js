@@ -1,8 +1,8 @@
 import { Router } from 'express'
 import * as ctrl from '../controllers/auth.controller.js'
-import { authenticate } from '../middlewares/auth.js'
+import { authenticate, authorize } from '../middlewares/auth.js'
 import { validate } from '../middlewares/validate.js'
-import { registerValidator, loginValidator, changePasswordValidator, updateMeValidator } from '../validators/auth.validator.js'
+import { registerValidator, loginValidator, changePasswordValidator, updateMeValidator, dutyValidator } from '../validators/auth.validator.js'
 
 const router = Router()
 
@@ -47,5 +47,12 @@ router.post('/logout', authenticate, ctrl.logout)
  * @access Private
  */
 router.put('/password', authenticate, changePasswordValidator, validate, ctrl.changePassword)
+
+/**
+ * @route  PUT /api/auth/pharmacy/duty
+ * @desc   Set the pharmacy duty schedule: weekdays (0 = Sunday … 6 = Saturday) + optional hours 'HH:MM'
+ * @access Private (ADMIN)
+ */
+router.put('/pharmacy/duty', authenticate, authorize('ADMIN'), dutyValidator, validate, ctrl.updateDuty)
 
 export default router

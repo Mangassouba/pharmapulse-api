@@ -1,0 +1,1 @@
+ALTER TABLE "pharmacy" ADD COLUMN "duty_days" integer[] DEFAULT '{}' NOT NULL;

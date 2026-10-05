@@ -1,4 +1,6 @@
-import prisma from '../config/database.js'
+import { eq, and, isNull, gt, gte, lte, asc } from 'drizzle-orm'
+import db from '../config/database.js'
+import { batches, products } from '../db/schema.js'
 import { getSalesStats } from './sale.service.js'
 import { getProductStats } from './product.service.js'
 import { getMovementStats } from './movement.service.js'
@@ -10,33 +12,32 @@ export async function getDashboardData(pharmacyId) {
     getMovementStats(pharmacyId),
 
     // Batches expiring in 30 days
-    prisma.batches.findMany({
-      where: {
-        pharmacyId,
-        status: 'ACTIVE',
-        deletedAt: null,
-        expiration_date: {
-          lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          gte: new Date(),
-        },
-      },
-      include: { product: { select: { id: true, name: true } } },
-      orderBy: { expiration_date: 'asc' },
-      take: 10,
+    db.query.batches.findMany({
+      where: and(
+        eq(batches.pharmacyId, pharmacyId),
+        eq(batches.status, 'ACTIVE'),
+        isNull(batches.deletedAt),
+        lte(batches.expiration_date, new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
+        gte(batches.expiration_date, new Date()),
+      ),
+      with: { product: { columns: { id: true, name: true } } },
+      orderBy: [asc(batches.expiration_date)],
+      limit: 10,
     }),
 
     // Products needing alerts
-    prisma.products.findMany({
-      where: { pharmacyId, deletedAt: null, stock: 0 },
-      select: { id: true, name: true, stock: true, threshold: true, status: true },
-      take: 20,
+    db.query.products.findMany({
+      where: and(eq(products.pharmacyId, pharmacyId), isNull(products.deletedAt), eq(products.stock, 0)),
+      columns: { id: true, name: true, stock: true, threshold: true, status: true },
+      limit: 20,
     }),
   ])
 
   // Low stock (not out of stock)
-  const lowStockProducts = await prisma.products.findMany({
-    where: { pharmacyId, deletedAt: null, stock: { gt: 0 } },
-    select: { id: true, name: true, stock: true, threshold: true, category: { select: { name: true } } },
+  const lowStockProducts = await db.query.products.findMany({
+    where: and(eq(products.pharmacyId, pharmacyId), isNull(products.deletedAt), gt(products.stock, 0)),
+    columns: { id: true, name: true, stock: true, threshold: true },
+    with: { category: { columns: { name: true } } },
   })
   const lowStock = lowStockProducts.filter(p => p.stock < p.threshold)
 

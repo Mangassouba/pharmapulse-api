@@ -21,6 +21,21 @@ export const updateMeValidator = [
   body('address').optional({ checkFalsy: true }).trim().isLength({ max: 255 }),
 ]
 
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/
+
+export const dutyValidator = [
+  body('dutyDays').isArray({ max: 7 }).withMessage('dutyDays must be an array'),
+  body('dutyDays.*').isInt({ min: 0, max: 6 }).withMessage('Invalid weekday (0-6)').toInt(),
+  body('dutyStart').optional({ values: 'null' }).matches(HHMM).withMessage('Heure de début invalide (HH:MM)'),
+  body('dutyEnd').optional({ values: 'null' }).matches(HHMM).withMessage('Heure de fin invalide (HH:MM)'),
+  body('dutyEnd').custom((end, { req }) => {
+    const start = req.body.dutyStart ?? null
+    if ((start === null) !== ((end ?? null) === null)) throw new Error("Renseignez l'heure de début et l'heure de fin, ou aucune des deux")
+    if (start !== null && start === end) throw new Error("L'heure de début et l'heure de fin doivent être différentes")
+    return true
+  }),
+]
+
 export const changePasswordValidator = [
   body('currentPassword').notEmpty().withMessage('Current password required'),
   body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters'),

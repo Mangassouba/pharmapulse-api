@@ -91,3 +91,14 @@ Invalid value for argument `status`. Expected OrderStatus.
 2026-07-19 00:10:03 [error]: Email ou mot de passe incorrect
 2026-07-19 00:10:16 [error]: Email ou mot de passe incorrect
 2026-07-19 01:07:59 [error]: Email ou mot de passe incorrect
+2026-09-26 01:24:13 [error]: Ce nom de catégorie existe déjà
+2026-09-26 01:24:13 [error]: Ce code-barres est déjà utilisé
+2026-09-26 01:24:16 [error]: Email ou mot de passe incorrect
+2026-09-29 12:30:21 [error]: Abonnement introuvable.
+2026-09-29 12:31:06 [error]: Abonnement introuvable.
+2026-09-29 12:31:15 [error]: Abonnement introuvable.
+2026-09-30 14:43:56 [error]: Email ou mot de passe incorrect
+2026-09-30 14:47:41 [error]: Identifiants incorrects ou compte inactif.
+2026-09-30 14:48:04 [error]: Email ou mot de passe incorrect
+2026-09-30 14:48:38 [error]: Email ou mot de passe incorrect
+2026-09-30 15:45:10 [error]: Email ou mot de passe incorrect

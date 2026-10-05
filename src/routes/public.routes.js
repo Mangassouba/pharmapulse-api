@@ -3,7 +3,10 @@
  * Interface client vitrine
  */
 import { Router } from 'express'
-import prisma     from '../config/database.js'
+import { eq, ne, and, gt, isNull, inArray, asc, desc, count } from 'drizzle-orm'
+import db from '../config/database.js'
+import { pharmacy, products, users, orders, orderDetails, notifications } from '../db/schema.js'
+import { contains, withCounts } from '../db/helpers.js'
 
 const router = Router()
 
@@ -24,10 +27,29 @@ async function makePickupCode() {
   for (let attempts = 0; attempts < 20; attempts++) {
     let code = 'PH-'
     for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)]
-    const exists = await prisma.orders.findUnique({ where: { pickup_code: code } })
+    const exists = await db.query.orders.findFirst({ where: eq(orders.pickup_code, code), columns: { id: true } })
     if (!exists) return code
   }
   throw new Error('Impossible de générer un code unique.')
+}
+
+// ── Pharmacie publique: abonnement + compteurs produits/utilisateurs ──
+const activePharmacy = and(eq(pharmacy.status, 'ACTIVE'), eq(pharmacy.is_active, true))
+
+async function findPublicPharmacies(where) {
+  const rows = await db.query.pharmacy.findMany({
+    where,
+    with: { subscription: { columns: { plan: true, status: true } } },
+  })
+  return withCounts(rows, {
+    products: [products, products.pharmacyId],
+    users:    [users, users.pharmacyId],
+  })
+}
+
+const orderPublicWith = {
+  details:  { with: { product: { columns: { id: true, name: true, unit_type: true } } } },
+  pharmacy: { columns: { id: true, name: true, phone: true, address: true, city: true } },
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -37,13 +59,7 @@ async function makePickupCode() {
 router.get('/pharmacies', async (req, res, next) => {
   try {
     const { lat, lng } = req.query
-    const rows = await prisma.pharmacy.findMany({
-      where:   { status: 'ACTIVE', is_active: true, deletedAt: null },
-      include: {
-        subscription: { select: { plan: true, status: true } },
-        _count:       { select: { products: true, users: true } },
-      },
-    })
+    const rows = await findPublicPharmacies(and(activePharmacy, isNull(pharmacy.deletedAt)))
 
     const uLat = parseFloat(lat); const uLng = parseFloat(lng)
     const data = rows.map(p => ({
@@ -59,13 +75,7 @@ router.get('/pharmacies', async (req, res, next) => {
 
 router.get('/pharmacies/:id', async (req, res, next) => {
   try {
-    const ph = await prisma.pharmacy.findFirst({
-      where:   { id: parseInt(req.params.id), status: 'ACTIVE', is_active: true },
-      include: {
-        subscription: { select: { plan: true, status: true } },
-        _count:       { select: { products: true, users: true } },
-      },
-    })
+    const [ph] = await findPublicPharmacies(and(eq(pharmacy.id, parseInt(req.params.id)), activePharmacy))
     if (!ph) return res.status(404).json({ success: false, message: 'Pharmacie introuvable.' })
     res.json({ success: true, data: ph })
   } catch (err) { next(err) }
@@ -78,22 +88,30 @@ router.get('/pharmacies/:id/products', async (req, res, next) => {
     const skip = (parseInt(page) - 1) * parseInt(pageSize)
     const take = parseInt(pageSize)
 
-    const where = { pharmacyId: pId, deletedAt: null, status: { not: 'DISCONTINUED' } }
-    if (search)          where.name       = { contains: search, mode: 'insensitive' }
-    if (categoryId)      where.categoryId = parseInt(categoryId)
-    if (inStock === 'true') where.stock   = { gt: 0 }
+    const where = and(
+      eq(products.pharmacyId, pId),
+      isNull(products.deletedAt),
+      ne(products.status, 'DISCONTINUED'),
+      search             ? contains(products.name, search) : undefined,
+      categoryId         ? eq(products.categoryId, parseInt(categoryId)) : undefined,
+      inStock === 'true' ? gt(products.stock, 0) : undefined,
+    )
 
     const orderBy = {
-      price_asc:  { sale_price: 'asc'  },
-      price_desc: { sale_price: 'desc' },
-      stock:      { stock: 'desc'      },
-    }[sortBy] || { name: 'asc' }
+      price_asc:  asc(products.sale_price),
+      price_desc: desc(products.sale_price),
+      stock:      desc(products.stock),
+    }[sortBy] || asc(products.name)
 
-    const [products, total] = await prisma.$transaction([
-      prisma.products.findMany({ where, include: { category: { select: { id: true, name: true } } }, orderBy, skip, take }),
-      prisma.products.count({ where }),
+    const [rows, [{ total }]] = await Promise.all([
+      db.query.products.findMany({
+        where,
+        with: { category: { columns: { id: true, name: true } } },
+        orderBy: [orderBy], offset: skip, limit: take,
+      }),
+      db.select({ total: count() }).from(products).where(where),
     ])
-    res.json({ success: true, data: products, meta: { total, page: parseInt(page), totalPages: Math.ceil(total / take) } })
+    res.json({ success: true, data: rows, meta: { total, page: parseInt(page), totalPages: Math.ceil(total / take) } })
   } catch (err) { next(err) }
 })
 
@@ -106,25 +124,23 @@ router.get('/products/search', async (req, res, next) => {
     const { q, pharmacyId, lat, lng } = req.query
     if (!q || q.trim().length < 2) return res.json({ success: true, data: [] })
 
-    const where = {
-      name:      { contains: q.trim(), mode: 'insensitive' },
-      deletedAt: null,
-      pharmacy:  { status: 'ACTIVE', is_active: true },
-    }
-    if (pharmacyId) where.pharmacyId = parseInt(pharmacyId)
-
-    const products = await prisma.products.findMany({
-      where,
-      include: {
-        category: { select: { id: true, name: true } },
-        pharmacy: { select: { id: true, name: true, city: true, phone: true, latitude: true, longitude: true } },
+    const found = await db.query.products.findMany({
+      where: and(
+        contains(products.name, q.trim()),
+        isNull(products.deletedAt),
+        inArray(products.pharmacyId, db.select({ id: pharmacy.id }).from(pharmacy).where(activePharmacy)),
+        pharmacyId ? eq(products.pharmacyId, parseInt(pharmacyId)) : undefined,
+      ),
+      with: {
+        category: { columns: { id: true, name: true } },
+        pharmacy: { columns: { id: true, name: true, city: true, phone: true, latitude: true, longitude: true } },
       },
-      orderBy: [{ stock: 'desc' }, { name: 'asc' }],
-      take: 60,
+      orderBy: [desc(products.stock), asc(products.name)],
+      limit: 60,
     })
 
     const uLat = parseFloat(lat); const uLng = parseFloat(lng)
-    const data = products.map(p => ({
+    const data = found.map(p => ({
       productId:       p.id,
       id:              p.id,
       name:            p.name,
@@ -166,16 +182,16 @@ router.post('/orders', async (req, res, next) => {
     if (!items?.length)         return res.status(422).json({ success: false, message: 'Au moins un article requis.' })
 
     // Pharmacie active ?
-    const pharmacy = await prisma.pharmacy.findFirst({
-      where: { id: parseInt(pharmacyId), status: 'ACTIVE', is_active: true },
+    const ph = await db.query.pharmacy.findFirst({
+      where: and(eq(pharmacy.id, parseInt(pharmacyId)), activePharmacy),
     })
-    if (!pharmacy) return res.status(404).json({ success: false, message: 'Pharmacie introuvable ou inactive.' })
+    if (!ph) return res.status(404).json({ success: false, message: 'Pharmacie introuvable ou inactive.' })
 
     // Vérifier stock
     const errors = []
     for (const item of items) {
-      const prod = await prisma.products.findFirst({
-        where: { id: item.productId, pharmacyId: parseInt(pharmacyId), deletedAt: null },
+      const prod = await db.query.products.findFirst({
+        where: and(eq(products.id, item.productId), eq(products.pharmacyId, parseInt(pharmacyId)), isNull(products.deletedAt)),
       })
       if (!prod)               { errors.push(`Produit introuvable (ID: ${item.productId}).`); continue }
       if (prod.stock < item.quantity) errors.push(`"${prod.name}" : seulement ${prod.stock} en stock.`)
@@ -188,8 +204,8 @@ router.post('/orders', async (req, res, next) => {
 
     const totalAmount = items.reduce((s, i) => s + i.quantity * parseFloat(i.price), 0)
 
-    const order = await prisma.orders.create({
-      data: {
+    const orderId = await db.transaction(async (tx) => {
+      const [created] = await tx.insert(orders).values({
         pharmacyId:        parseInt(pharmacyId),
         customer:          customerName.trim(),
         customer_phone:    customerPhone.trim(),
@@ -200,29 +216,27 @@ router.post('/orders', async (req, res, next) => {
         total_amount:      totalAmount,
         pickup_code,                    // ← CODE SAUVEGARDÉ EN BASE
         pickup_expires_at,
-        details: {
-          create: items.map(i => ({
-            productId: i.productId,
-            quantity:  i.quantity,
-            price:     parseFloat(i.price),
-            total:     i.quantity * parseFloat(i.price),
-          })),
-        },
-      },
-      include: {
-        details:  { include: { product: { select: { id: true, name: true, unit_type: true } } } },
-        pharmacy: { select: { id: true, name: true, phone: true, address: true, city: true } },
-      },
+      }).returning({ id: orders.id })
+
+      await tx.insert(orderDetails).values(items.map(i => ({
+        orderId:   created.id,
+        productId: i.productId,
+        quantity:  i.quantity,
+        price:     parseFloat(i.price),
+        total:     i.quantity * parseFloat(i.price),
+      })))
+
+      return created.id
     })
 
+    const order = await db.query.orders.findFirst({ where: eq(orders.id, orderId), with: orderPublicWith })
+
     // Notifier la pharmacie (dans son panel)
-    await prisma.notifications.create({
-      data: {
-        pharmacyId: parseInt(pharmacyId),
-        title:   `🛒 Commande en ligne — ${pickup_code}`,
-        message: `${customerName} · ${totalAmount.toLocaleString('fr-FR')} FCFA · Code : ${pickup_code}. À préparer.`,
-        type:    'INFO',
-      },
+    await db.insert(notifications).values({
+      pharmacyId: parseInt(pharmacyId),
+      title:   `🛒 Commande en ligne — ${pickup_code}`,
+      message: `${customerName} · ${totalAmount.toLocaleString('fr-FR')} MRU · Code : ${pickup_code}. À préparer.`,
+      type:    'INFO',
     })
 
     res.status(201).json({
@@ -253,12 +267,9 @@ router.post('/orders', async (req, res, next) => {
 router.get('/orders/:code', async (req, res, next) => {
   try {
     const code  = req.params.code.toUpperCase().trim()
-    const order = await prisma.orders.findUnique({
-      where:   { pickup_code: code },
-      include: {
-        details:  { include: { product: { select: { id: true, name: true, unit_type: true } } } },
-        pharmacy: { select: { id: true, name: true, phone: true, address: true, city: true } },
-      },
+    const order = await db.query.orders.findFirst({
+      where: eq(orders.pickup_code, code),
+      with:  orderPublicWith,
     })
     if (!order) return res.status(404).json({ success: false, message: 'Code invalide ou commande introuvable.' })
 

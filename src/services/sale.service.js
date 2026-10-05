@@ -1,4 +1,7 @@
-import prisma from '../config/database.js'
+import { eq, and, or, isNull, gte, lte, inArray, desc, count, sum, sql } from 'drizzle-orm'
+import db from '../config/database.js'
+import { products, batches, sales, saleDetails, stockMovements } from '../db/schema.js'
+import { contains } from '../db/helpers.js'
 import { getPaginationParams } from '../utils/response.js'
 import { createAuditLog } from '../utils/audit.js'
 import { generateInvoiceNumber } from '../utils/invoice.js'
@@ -8,11 +11,11 @@ export async function createSale(pharmacyId, userId, data, req) {
 
   // ── 1. Validate stock for all items ──────────────────────────────────────
   const productIds = [...new Set(items.map(i => i.productId))]
-  const products   = await prisma.products.findMany({
-    where: { id: { in: productIds }, pharmacyId, deletedAt: null },
+  const found      = await db.query.products.findMany({
+    where: and(inArray(products.id, productIds), eq(products.pharmacyId, pharmacyId), isNull(products.deletedAt)),
   })
 
-  const productMap = Object.fromEntries(products.map(p => [p.id, p]))
+  const productMap = Object.fromEntries(found.map(p => [p.id, p]))
 
   for (const item of items) {
     const product = productMap[item.productId]
@@ -32,7 +35,7 @@ export async function createSale(pharmacyId, userId, data, req) {
   // ── 2. Create sale + details + update stock + movements in transaction ────
   const invoiceNumber = generateInvoiceNumber('VTE')
 
-  const sale = await prisma.$transaction(async (tx) => {
+  const saleId = await db.transaction(async (tx) => {
     // Calculate totals
     let subtotal = 0
     const detailsData = items.map(item => {
@@ -54,67 +57,64 @@ export async function createSale(pharmacyId, userId, data, req) {
     const totalAmount = subtotal - parseFloat(discount) + parseFloat(tax)
 
     // Create sale
-    const newSale = await tx.sales.create({
-      data: {
-        pharmacyId,
-        userId,
-        invoice_number: invoiceNumber,
-        customer:       customer || null,
-        customer_phone: customer_phone || null,
-        customer_email: customer_email || null,
-        payment_method: payment_method || 'CASH',
-        discount:       parseFloat(discount),
-        tax:            parseFloat(tax),
-        total_amount:   Math.max(0, totalAmount),
-        details: { create: detailsData },
-      },
-      include: {
-        details: { include: { product: { select: { id: true, name: true } } } },
-        user:    { select: { id: true, name: true } },
-      },
-    })
+    const [newSale] = await tx.insert(sales).values({
+      pharmacyId,
+      userId,
+      invoice_number: invoiceNumber,
+      customer:       customer || null,
+      customer_phone: customer_phone || null,
+      customer_email: customer_email || null,
+      payment_method: payment_method || 'CASH',
+      discount:       parseFloat(discount),
+      tax:            parseFloat(tax),
+      total_amount:   Math.max(0, totalAmount),
+    }).returning({ id: sales.id })
+
+    await tx.insert(saleDetails).values(detailsData.map(d => ({ ...d, saleId: newSale.id })))
 
     // Update stock + create movements for each item
     for (const item of items) {
       const product = productMap[item.productId]
       const newStock = product.stock - item.quantity
 
-      await tx.products.update({
-        where: { id: item.productId },
-        data: {
+      await tx.update(products)
+        .set({
           stock: newStock,
           status: newStock === 0 ? 'OUT_OF_STOCK' : 'AVAILABLE',
-        },
-      })
+        })
+        .where(eq(products.id, item.productId))
 
-      await tx.stockMovements.create({
-        data: {
-          productId:      item.productId,
-          pharmacyId,
-          userId,
-          batchId:        item.batchId || null,
-          type:           'SALE',
-          quantity:       -item.quantity,
-          previous_stock: product.stock,
-          new_stock:      newStock,
-          reference_id:   newSale.id,
-          reason:         `Vente ${invoiceNumber}`,
-          unit_type:      item.unit_type || null,
-        },
+      await tx.insert(stockMovements).values({
+        productId:      item.productId,
+        pharmacyId,
+        userId,
+        batchId:        item.batchId || null,
+        type:           'SALE',
+        quantity:       -item.quantity,
+        previous_stock: product.stock,
+        new_stock:      newStock,
+        reference_id:   newSale.id,
+        reason:         `Vente ${invoiceNumber}`,
+        unit_type:      item.unit_type || null,
       })
 
       // Update batch quantity if specified
       if (item.batchId) {
-        await tx.batches.update({
-          where: { id: item.batchId },
-          data: {
-            quantity: { decrement: item.quantity },
-          },
-        })
+        await tx.update(batches)
+          .set({ quantity: sql`${batches.quantity} - ${item.quantity}` })
+          .where(eq(batches.id, item.batchId))
       }
     }
 
-    return newSale
+    return newSale.id
+  })
+
+  const sale = await db.query.sales.findFirst({
+    where: eq(sales.id, saleId),
+    with: {
+      details: { with: { product: { columns: { id: true, name: true } } } },
+      user:    { columns: { id: true, name: true } },
+    },
   })
 
   await createAuditLog({
@@ -126,55 +126,83 @@ export async function createSale(pharmacyId, userId, data, req) {
   return sale
 }
 
+/** Numéro de facture de la vente issue d'une commande — identique au n° du reçu de retrait */
+export const orderInvoiceNumber = orderId => `CMD-${String(orderId).padStart(6, '0')}`
+
+/**
+ * Enregistre en vente une commande retirée (pour l'historique et le CA).
+ * Ne touche pas au stock : validate-pickup s'en charge déjà.
+ * `order` doit inclure ses `details`.
+ */
+export async function createSaleFromOrder(tx, order, { userId, payment_method = 'CASH', sale_date = new Date() }) {
+  const [sale] = await tx.insert(sales).values({
+    pharmacyId:     order.pharmacyId,
+    userId,
+    sale_date,
+    invoice_number: orderInvoiceNumber(order.id),
+    customer:       order.customer,
+    customer_phone: order.customer_phone,
+    customer_email: order.customer_email,
+    payment_method,
+    discount:       0,
+    tax:            0,
+    total_amount:   order.total_amount,
+  }).returning()
+
+  if (order.details.length) {
+    await tx.insert(saleDetails).values(order.details.map(d => ({
+      saleId:    sale.id,
+      productId: d.productId,
+      quantity:  d.quantity,
+      price:     d.price,
+      discount:  0,
+      total:     d.total ?? d.quantity * d.price,
+      unit_type: d.unit_type,
+    })))
+  }
+  return sale
+}
+
 export async function getSales(pharmacyId, query) {
   const { page, pageSize, skip, take } = getPaginationParams(query)
   const { search, dateFrom, dateTo, payment_method } = query
 
-  const where = {
-    pharmacyId,
-    deletedAt: null,
-    ...(search && {
-      OR: [
-        { customer: { contains: search, mode: 'insensitive' } },
-        { invoice_number: { contains: search, mode: 'insensitive' } },
-      ],
-    }),
-    ...(dateFrom || dateTo ? {
-      sale_date: {
-        ...(dateFrom && { gte: new Date(dateFrom) }),
-        ...(dateTo   && { lte: new Date(dateTo + 'T23:59:59') }),
-      },
-    } : {}),
-    ...(payment_method && { payment_method }),
-  }
+  const where = and(
+    eq(sales.pharmacyId, pharmacyId),
+    isNull(sales.deletedAt),
+    search ? or(contains(sales.customer, search), contains(sales.invoice_number, search)) : undefined,
+    dateFrom ? gte(sales.sale_date, new Date(dateFrom)) : undefined,
+    dateTo   ? lte(sales.sale_date, new Date(dateTo + 'T23:59:59')) : undefined,
+    payment_method ? eq(sales.payment_method, payment_method) : undefined,
+  )
 
-  const [sales, total] = await prisma.$transaction([
-    prisma.sales.findMany({
+  const [rows, [{ total }]] = await Promise.all([
+    db.query.sales.findMany({
       where,
-      skip, take,
-      include: {
-        user:    { select: { id: true, name: true } },
+      offset: skip, limit: take,
+      with: {
+        user:    { columns: { id: true, name: true } },
         details: {
-          include: { product: { select: { id: true, name: true } } },
+          with: { product: { columns: { id: true, name: true } } },
         },
       },
-      orderBy: { sale_date: 'desc' },
+      orderBy: [desc(sales.sale_date)],
     }),
-    prisma.sales.count({ where }),
+    db.select({ total: count() }).from(sales).where(where),
   ])
 
-  return { sales, total, page, pageSize }
+  return { sales: rows, total, page, pageSize }
 }
 
 export async function getSaleById(id, pharmacyId, req) {
-  const sale = await prisma.sales.findFirst({
-    where: { id, pharmacyId, deletedAt: null },
-    include: {
-      user:    { select: { id: true, name: true } },
+  const sale = await db.query.sales.findFirst({
+    where: and(eq(sales.id, id), eq(sales.pharmacyId, pharmacyId), isNull(sales.deletedAt)),
+    with: {
+      user:    { columns: { id: true, name: true } },
       details: {
-        include: {
-          product: { select: { id: true, name: true, barcode: true, unit_type: true } },
-          batch:   { select: { id: true, number: true, expiration_date: true } },
+        with: {
+          product: { columns: { id: true, name: true, barcode: true, unit_type: true } },
+          batch:   { columns: { id: true, number: true, expiration_date: true } },
         },
       },
     },
@@ -183,25 +211,26 @@ export async function getSaleById(id, pharmacyId, req) {
   return sale
 }
 
+function salesSince(pharmacyId, since) {
+  return db
+    .select({ sum: sum(sales.total_amount), count: count() })
+    .from(sales)
+    .where(and(eq(sales.pharmacyId, pharmacyId), isNull(sales.deletedAt), gte(sales.sale_date, since)))
+    .then(([row]) => row)
+}
+
 export async function getSalesStats(pharmacyId) {
   const today = new Date()
   const startOfDay   = new Date(today.getFullYear(), today.getMonth(), today.getDate())
   const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
 
-  const [caToday, caMonth, totalSales, last7days] = await Promise.all([
-    prisma.sales.aggregate({
-      where: { pharmacyId, deletedAt: null, sale_date: { gte: startOfDay } },
-      _sum: { total_amount: true },
-      _count: true,
-    }),
-    prisma.sales.aggregate({
-      where: { pharmacyId, deletedAt: null, sale_date: { gte: startOfMonth } },
-      _sum: { total_amount: true },
-      _count: true,
-    }),
-    prisma.sales.count({ where: { pharmacyId, deletedAt: null } }),
+  const [caToday, caMonth, [{ totalSales }], last7days] = await Promise.all([
+    salesSince(pharmacyId, startOfDay),
+    salesSince(pharmacyId, startOfMonth),
+    db.select({ totalSales: count() }).from(sales)
+      .where(and(eq(sales.pharmacyId, pharmacyId), isNull(sales.deletedAt))),
     // Last 7 days daily breakdown
-    prisma.$queryRaw`
+    db.execute(sql`
       SELECT
         DATE(sale_date) as date,
         COUNT(*)::int as count,
@@ -212,14 +241,14 @@ export async function getSalesStats(pharmacyId) {
         AND sale_date >= CURRENT_DATE - INTERVAL '6 days'
       GROUP BY DATE(sale_date)
       ORDER BY date ASC
-    `,
+    `).then(res => res.rows.map(r => ({ ...r, date: new Date(r.date) }))),
   ])
 
   return {
-    caToday:     parseFloat(caToday._sum.total_amount  || 0),
-    salesCountToday: caToday._count,
-    caMonth:     parseFloat(caMonth._sum.total_amount  || 0),
-    salesCountMonth: caMonth._count,
+    caToday:     parseFloat(caToday.sum  || 0),
+    salesCountToday: caToday.count,
+    caMonth:     parseFloat(caMonth.sum  || 0),
+    salesCountMonth: caMonth.count,
     totalSales,
     last7days,
   }

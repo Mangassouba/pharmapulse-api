@@ -1,24 +1,25 @@
 {
   "name": "pharmapulse-api",
   "version": "1.0.0",
-  "description": "PharmaPulse SaaS REST API — Express + Prisma + PostgreSQL",
+  "description": "PharmaPulse SaaS REST API — Express + Drizzle ORM + PostgreSQL",
   "main": "src/index.js",
   "type": "module",
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "db:migrate": "prisma migrate dev",
-    "db:generate": "prisma generate",
-    "db:studio": "prisma studio",
-    "db:seed": "node src/prisma/seed.js",
-    "db:reset": "prisma migrate reset --force && node src/prisma/seed.js"
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "node src/db/seed.js",
+    "db:backfill-order-sales": "node src/db/backfill-order-sales.js"
   },
   "dependencies": {
-    "@prisma/client": "^6.0.0",
     "bcryptjs": "^2.4.3",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
     "dotenv": "^16.4.0",
+    "drizzle-orm": "^0.45.3",
     "express": "^4.18.0",
     "express-rate-limit": "^7.2.0",
     "express-validator": "^7.0.0",
@@ -27,11 +28,12 @@
     "i18next-http-middleware": "^3.6.0",
     "jsonwebtoken": "^9.0.0",
     "morgan": "^1.10.0",
+    "pg": "^8.23.0",
     "winston": "^3.13.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0",
-    "prisma": "^6.19.3"
+    "drizzle-kit": "^0.31.11",
+    "nodemon": "^3.1.0"
   }
 }

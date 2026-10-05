@@ -42,6 +42,13 @@ export async function changePassword(req, res, next) {
   } catch (err) { next(err) }
 }
 
+export async function updateDuty(req, res, next) {
+  try {
+    const data = await authService.updateDuty(req.user.pharmacyId, req.body, req)
+    return successResponse(res, { message: 'Garde mise à jour', data })
+  } catch (err) { next(err) }
+}
+
 export async function logout(req, res) {
   return successResponse(res, { message: req.t('auth.logout_success') })
 }

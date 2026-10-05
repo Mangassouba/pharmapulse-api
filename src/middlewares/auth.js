@@ -1,6 +1,8 @@
+import { eq } from 'drizzle-orm'
 import { verifyToken } from '../config/jwt.js'
 import { errorResponse } from '../utils/response.js'
-import prisma from '../config/database.js'
+import db from '../config/database.js'
+import { pharmacy as pharmacyTable } from '../db/schema.js'
 
 export function authenticate(req, res, next) {
   const authHeader = req.headers.authorization
@@ -42,12 +44,10 @@ export async function requireActivePharmacy(req, res, next) {
   if (!req.user?.pharmacyId) return errorResponse(res, { message: req.t('auth.unauthorized'), statusCode: 401 })
 
   try {
-    const pharmacy = await prisma.pharmacy.findUnique({
-      where: { id: req.user.pharmacyId },
-      select: {
-        is_active: true, status: true,
-        subscription: { select: { status: true, end_date: true } },
-      },
+    const pharmacy = await db.query.pharmacy.findFirst({
+      where: eq(pharmacyTable.id, req.user.pharmacyId),
+      columns: { is_active: true, status: true },
+      with: { subscription: { columns: { status: true, end_date: true } } },
     })
 
     if (!pharmacy) return errorResponse(res, { message: req.t('pharmacy.not_found'), statusCode: 404 })

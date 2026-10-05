@@ -1,6 +1,15 @@
-import prisma from '../config/database.js'
+import { eq, and, isNull, gte, lte, desc, count } from 'drizzle-orm'
+import db from '../config/database.js'
+import { orders, orderDetails } from '../db/schema.js'
+import { contains } from '../db/helpers.js'
 import { getPaginationParams } from '../utils/response.js'
 import { createAuditLog } from '../utils/audit.js'
+
+const orderWith = {
+  user:      { columns: { id: true, name: true } },
+  validator: { columns: { id: true, name: true } },
+  details:   { with: { product: { columns: { id: true, name: true } } } },
+}
 
 export async function createOrder(pharmacyId, userId, data, req) {
   const { customer, customer_phone, customer_email, delivery_date, items } = data
@@ -18,8 +27,8 @@ export async function createOrder(pharmacyId, userId, data, req) {
     }
   })
 
-  const order = await prisma.orders.create({
-    data: {
+  const orderId = await db.transaction(async (tx) => {
+    const [created] = await tx.insert(orders).values({
       pharmacyId,
       userId,
       customer,
@@ -27,13 +36,13 @@ export async function createOrder(pharmacyId, userId, data, req) {
       customer_email: customer_email || null,
       delivery_date:  delivery_date ? new Date(delivery_date) : null,
       total_amount:   totalAmount,
-      details: { create: detailsData },
-    },
-    include: {
-      details: { include: { product: { select: { id: true, name: true } } } },
-      user:    { select: { id: true, name: true } },
-    },
+    }).returning({ id: orders.id })
+
+    await tx.insert(orderDetails).values(detailsData.map(d => ({ ...d, orderId: created.id })))
+    return created.id
   })
+
+  const order = await db.query.orders.findFirst({ where: eq(orders.id, orderId), with: orderWith })
 
   await createAuditLog({
     action: 'CREATE', entity: 'orders', entity_id: order.id,
@@ -47,39 +56,42 @@ export async function getOrders(pharmacyId, query) {
   const { page, pageSize, skip, take } = getPaginationParams(query)
   const { status, search, dateFrom, dateTo } = query
 
-  const where = {
-    pharmacyId,
-    deletedAt: null,
-    ...(status && { status }),
-    ...(search && { customer: { contains: search, mode: 'insensitive' } }),
-    ...(dateFrom || dateTo ? {
-      order_date: {
-        ...(dateFrom && { gte: new Date(dateFrom) }),
-        ...(dateTo   && { lte: new Date(dateTo + 'T23:59:59') }),
-      },
-    } : {}),
-  }
+  const where = and(
+    eq(orders.pharmacyId, pharmacyId),
+    isNull(orders.deletedAt),
+    status   ? eq(orders.status, status) : undefined,
+    search   ? contains(orders.customer, search) : undefined,
+    dateFrom ? gte(orders.order_date, new Date(dateFrom)) : undefined,
+    dateTo   ? lte(orders.order_date, new Date(dateTo + 'T23:59:59')) : undefined,
+  )
 
-  const [orders, total] = await prisma.$transaction([
-    prisma.orders.findMany({
-      where, skip, take,
-      include: {
-        user:    { select: { id: true, name: true } },
-        details: { include: { product: { select: { id: true, name: true } } } },
-      },
-      orderBy: { order_date: 'desc' },
+  const [rows, [{ total }]] = await Promise.all([
+    db.query.orders.findMany({
+      where, offset: skip, limit: take,
+      with: orderWith,
+      orderBy: [desc(orders.order_date)],
     }),
-    prisma.orders.count({ where }),
+    db.select({ total: count() }).from(orders).where(where),
   ])
 
-  return { orders, total, page, pageSize }
+  return { orders: rows, total, page, pageSize }
+}
+
+export async function getOrderById(id, pharmacyId) {
+  const order = await db.query.orders.findFirst({
+    where: and(eq(orders.id, id), eq(orders.pharmacyId, pharmacyId), isNull(orders.deletedAt)),
+    with: orderWith,
+  })
+  return order ?? null
 }
 
 export async function updateOrderStatus(id, pharmacyId, userId, status, req) {
-  const order = await prisma.orders.findFirst({ where: { id, pharmacyId, deletedAt: null } })
+  const order = await db.query.orders.findFirst({
+    where: and(eq(orders.id, id), eq(orders.pharmacyId, pharmacyId), isNull(orders.deletedAt)),
+  })
   if (!order) throw { statusCode: 404, message: req.t('order.not_found') }
 
-  const updated = await prisma.orders.update({ where: { id }, data: { status } })
+  const [updated] = await db.update(orders).set({ status }).where(eq(orders.id, id)).returning()
 
   await createAuditLog({
     action: 'UPDATE_STATUS', entity: 'orders', entity_id: id,
@@ -88,4 +100,12 @@ export async function updateOrderStatus(id, pharmacyId, userId, status, req) {
   })
 
   return updated
+}
+
+export async function cancelOrder(id, pharmacyId) {
+  const [cancelled] = await db.update(orders)
+    .set({ deletedAt: new Date(), status: 'CANCELLED' })
+    .where(and(eq(orders.id, id), eq(orders.pharmacyId, pharmacyId)))
+    .returning({ id: orders.id })
+  return cancelled ?? null
 }

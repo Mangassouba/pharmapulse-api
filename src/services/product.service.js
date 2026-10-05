@@ -1,72 +1,64 @@
-import prisma from '../config/database.js'
+import { eq, ne, and, isNull, gt, lt, asc, desc, count, sum } from 'drizzle-orm'
+import db from '../config/database.js'
+import { products, batches, stockMovements } from '../db/schema.js'
+import { contains, toRow, withCounts } from '../db/helpers.js'
 import { getPaginationParams } from '../utils/response.js'
 import { createAuditLog } from '../utils/audit.js'
 
+const withCategory = { category: { columns: { id: true, name: true } } }
+
 export async function getProducts(pharmacyId, query) {
   const { page, pageSize, skip, take } = getPaginationParams(query)
-  const { search, status, categoryId, lowStock, outOfStock } = query
+  const where = buildWhere(pharmacyId, query)
 
-  const where = {
-    pharmacyId,
-    deletedAt: null,
-    ...(search && { name: { contains: search, mode: 'insensitive' } }),
-    ...(status && { status }),
-    ...(categoryId && { categoryId: parseInt(categoryId) }),
-    ...(lowStock === 'true' && { stock: { gt: 0 }, AND: [{ stock: { lt: prisma.products.fields.threshold } }] }),
-    ...(outOfStock === 'true' && { stock: 0 }),
-  }
-
-  // Handle lowStock/outOfStock filter with a raw approach
-  let finalWhere = { pharmacyId, deletedAt: null }
-  if (search)     finalWhere.name = { contains: search, mode: 'insensitive' }
-  if (status)     finalWhere.status = status
-  if (categoryId) finalWhere.categoryId = parseInt(categoryId)
-  if (outOfStock === 'true') finalWhere.stock = 0
-  if (lowStock === 'true')   finalWhere = { ...finalWhere, stock: { gt: 0, lt: prisma.raw ? undefined : 0 } }
-
-  // Use simpler approach for threshold comparison
-  const [products, total] = await prisma.$transaction([
-    prisma.products.findMany({
-      where: buildWhere(pharmacyId, query),
-      skip, take,
-      include: {
-        category: { select: { id: true, name: true } },
-        user:     { select: { id: true, name: true } },
-        _count:   { select: { batches: true, stockMovements: true } },
+  const [rows, [{ total }]] = await Promise.all([
+    db.query.products.findMany({
+      where,
+      offset: skip, limit: take,
+      with: {
+        ...withCategory,
+        user: { columns: { id: true, name: true } },
       },
-      orderBy: { name: 'asc' },
+      orderBy: [asc(products.name)],
     }),
-    prisma.products.count({ where: buildWhere(pharmacyId, query) }),
+    db.select({ total: count() }).from(products).where(where),
   ])
 
-  return { products, total, page, pageSize }
+  const productsWithCounts = await withCounts(rows, {
+    batches:        [batches, batches.productId],
+    stockMovements: [stockMovements, stockMovements.productId],
+  })
+
+  return { products: productsWithCounts, total, page, pageSize }
 }
 
 function buildWhere(pharmacyId, query) {
   const { search, status, categoryId, lowStock, outOfStock } = query
-  const w = { pharmacyId, deletedAt: null }
-  if (search)            w.name = { contains: search, mode: 'insensitive' }
-  if (status)            w.status = status
-  if (categoryId)        w.categoryId = parseInt(categoryId)
-  if (outOfStock === 'true') w.stock = 0
-  // lowStock is handled post-fetch or via raw
-  return w
+  return and(
+    eq(products.pharmacyId, pharmacyId),
+    isNull(products.deletedAt),
+    search     ? contains(products.name, search) : undefined,
+    status     ? eq(products.status, status) : undefined,
+    categoryId ? eq(products.categoryId, parseInt(categoryId)) : undefined,
+    outOfStock === 'true' ? eq(products.stock, 0) : undefined,
+    ...(lowStock === 'true' ? [gt(products.stock, 0), lt(products.stock, products.threshold)] : []),
+  )
 }
 
 export async function getProductById(id, pharmacyId, req) {
-  const product = await prisma.products.findFirst({
-    where: { id, pharmacyId, deletedAt: null },
-    include: {
-      category:  { select: { id: true, name: true, description: true } },
-      user:      { select: { id: true, name: true } },
-      batches:   {
-        where: { status: 'ACTIVE', deletedAt: null },
-        orderBy: { expiration_date: 'asc' },
+  const product = await db.query.products.findFirst({
+    where: and(eq(products.id, id), eq(products.pharmacyId, pharmacyId), isNull(products.deletedAt)),
+    with: {
+      category: { columns: { id: true, name: true, description: true } },
+      user:     { columns: { id: true, name: true } },
+      batches:  {
+        where: (b, { eq, and, isNull }) => and(eq(b.status, 'ACTIVE'), isNull(b.deletedAt)),
+        orderBy: (b, { asc }) => [asc(b.expiration_date)],
       },
       stockMovements: {
-        orderBy: { movement_date: 'desc' },
-        take: 10,
-        include: { user: { select: { id: true, name: true } } },
+        orderBy: (m, { desc }) => [desc(m.movement_date)],
+        limit: 10,
+        with: { user: { columns: { id: true, name: true } } },
       },
     },
   })
@@ -76,39 +68,36 @@ export async function getProductById(id, pharmacyId, req) {
 
 export async function createProduct(pharmacyId, userId, data, req) {
   // Barcode uniqueness check
-  const existing = await prisma.products.findFirst({
-    where: { barcode: data.barcode, pharmacyId, deletedAt: null },
+  const existing = await db.query.products.findFirst({
+    where: and(eq(products.barcode, data.barcode), eq(products.pharmacyId, pharmacyId), isNull(products.deletedAt)),
   })
   if (existing) throw { statusCode: 409, message: req.t('product.barcode_taken') }
 
-  const product = await prisma.products.create({
-    data: {
-      ...data,
-      pharmacyId,
-      userId,
-      sale_price:     parseFloat(data.sale_price),
-      purchase_price: parseFloat(data.purchase_price),
-      stock:          parseFloat(data.stock || 0),
-      threshold:      parseFloat(data.threshold || 10),
-    },
-    include: { category: { select: { id: true, name: true } } },
-  })
+  const [created] = await db.insert(products).values({
+    ...toRow(products, data),
+    pharmacyId,
+    userId,
+    sale_price:     parseFloat(data.sale_price),
+    purchase_price: parseFloat(data.purchase_price),
+    stock:          parseFloat(data.stock || 0),
+    threshold:      parseFloat(data.threshold || 10),
+  }).returning({ id: products.id, stock: products.stock })
 
   // Create initial stock movement if stock > 0
-  if (product.stock > 0) {
-    await prisma.stockMovements.create({
-      data: {
-        productId:    product.id,
-        pharmacyId,
-        userId,
-        type:         'ENTRY',
-        quantity:     product.stock,
-        previous_stock: 0,
-        new_stock:    product.stock,
-        reason:       'Stock initial',
-      },
+  if (created.stock > 0) {
+    await db.insert(stockMovements).values({
+      productId:    created.id,
+      pharmacyId,
+      userId,
+      type:         'ENTRY',
+      quantity:     created.stock,
+      previous_stock: 0,
+      new_stock:    created.stock,
+      reason:       'Stock initial',
     })
   }
+
+  const product = await db.query.products.findFirst({ where: eq(products.id, created.id), with: withCategory })
 
   await createAuditLog({
     action: 'CREATE', entity: 'products', entity_id: product.id,
@@ -119,27 +108,32 @@ export async function createProduct(pharmacyId, userId, data, req) {
 }
 
 export async function updateProduct(id, pharmacyId, userId, data, req) {
-  const product = await prisma.products.findFirst({ where: { id, pharmacyId, deletedAt: null } })
+  const product = await db.query.products.findFirst({
+    where: and(eq(products.id, id), eq(products.pharmacyId, pharmacyId), isNull(products.deletedAt)),
+  })
   if (!product) throw { statusCode: 404, message: req.t('product.not_found') }
 
   // Barcode uniqueness check (exclude self)
   if (data.barcode && data.barcode !== product.barcode) {
-    const existing = await prisma.products.findFirst({
-      where: { barcode: data.barcode, pharmacyId, deletedAt: null, NOT: { id } },
+    const existing = await db.query.products.findFirst({
+      where: and(
+        eq(products.barcode, data.barcode), eq(products.pharmacyId, pharmacyId),
+        isNull(products.deletedAt), ne(products.id, id),
+      ),
     })
     if (existing) throw { statusCode: 409, message: req.t('product.barcode_taken') }
   }
 
-  const updated = await prisma.products.update({
-    where: { id },
-    data: {
-      ...data,
+  await db.update(products)
+    .set({
+      ...toRow(products, data),
       ...(data.sale_price     !== undefined && { sale_price: parseFloat(data.sale_price) }),
       ...(data.purchase_price !== undefined && { purchase_price: parseFloat(data.purchase_price) }),
       ...(data.threshold      !== undefined && { threshold: parseFloat(data.threshold) }),
-    },
-    include: { category: { select: { id: true, name: true } } },
-  })
+    })
+    .where(eq(products.id, id))
+
+  const updated = await db.query.products.findFirst({ where: eq(products.id, id), with: withCategory })
 
   await createAuditLog({
     action: 'UPDATE', entity: 'products', entity_id: id,
@@ -150,10 +144,12 @@ export async function updateProduct(id, pharmacyId, userId, data, req) {
 }
 
 export async function deleteProduct(id, pharmacyId, userId, req) {
-  const product = await prisma.products.findFirst({ where: { id, pharmacyId, deletedAt: null } })
+  const product = await db.query.products.findFirst({
+    where: and(eq(products.id, id), eq(products.pharmacyId, pharmacyId), isNull(products.deletedAt)),
+  })
   if (!product) throw { statusCode: 404, message: req.t('product.not_found') }
 
-  await prisma.products.update({ where: { id }, data: { deletedAt: new Date() } })
+  await db.update(products).set({ deletedAt: new Date() }).where(eq(products.id, id))
 
   await createAuditLog({
     action: 'DELETE', entity: 'products', entity_id: id,
@@ -162,20 +158,14 @@ export async function deleteProduct(id, pharmacyId, userId, req) {
 }
 
 export async function getProductStats(pharmacyId) {
-  const [total, outOfStock, lowStockItems, totalValue] = await Promise.all([
-    prisma.products.count({ where: { pharmacyId, deletedAt: null } }),
-    prisma.products.count({ where: { pharmacyId, deletedAt: null, stock: 0 } }),
-    prisma.products.findMany({
-      where: { pharmacyId, deletedAt: null, stock: { gt: 0 } },
-      select: { id: true, stock: true, threshold: true },
-    }),
-    prisma.products.aggregate({
-      where: { pharmacyId, deletedAt: null },
-      _sum: { stock: true },
-    }),
+  const active = and(eq(products.pharmacyId, pharmacyId), isNull(products.deletedAt))
+
+  const [[{ total, totalUnits }], [{ outOfStock }], [{ lowStock }]] = await Promise.all([
+    db.select({ total: count(), totalUnits: sum(products.stock).mapWith(Number) }).from(products).where(active),
+    db.select({ outOfStock: count() }).from(products).where(and(active, eq(products.stock, 0))),
+    db.select({ lowStock: count() }).from(products)
+      .where(and(active, gt(products.stock, 0), lt(products.stock, products.threshold))),
   ])
 
-  const lowStock = lowStockItems.filter(p => p.stock < p.threshold).length
-
-  return { total, outOfStock, lowStock, totalUnits: totalValue._sum.stock || 0 }
+  return { total, outOfStock, lowStock, totalUnits: totalUnits || 0 }
 }

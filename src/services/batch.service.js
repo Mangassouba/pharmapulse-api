@@ -1,4 +1,7 @@
-import prisma from '../config/database.js'
+import { eq, and, isNull, gte, lte, lt, asc, count } from 'drizzle-orm'
+import db from '../config/database.js'
+import { batches } from '../db/schema.js'
+import { toRow } from '../db/helpers.js'
 import { getPaginationParams } from '../utils/response.js'
 import { createAuditLog } from '../utils/audit.js'
 
@@ -6,53 +9,53 @@ export async function getBatches(pharmacyId, query) {
   const { page, pageSize, skip, take } = getPaginationParams(query)
   const { status, productId, expiringSoon } = query
 
-  const expiryFilter = expiringSoon === 'true'
-    ? { lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), gte: new Date() }
-    : undefined
+  const where = and(
+    eq(batches.pharmacyId, pharmacyId),
+    isNull(batches.deletedAt),
+    status    ? eq(batches.status, status) : undefined,
+    productId ? eq(batches.productId, parseInt(productId)) : undefined,
+    ...(expiringSoon === 'true'
+      ? [lte(batches.expiration_date, new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)), gte(batches.expiration_date, new Date())]
+      : []),
+  )
 
-  const where = {
-    pharmacyId,
-    deletedAt: null,
-    ...(status    && { status }),
-    ...(productId && { productId: parseInt(productId) }),
-    ...(expiryFilter && { expiration_date: expiryFilter }),
-  }
-
-  const [batches, total] = await prisma.$transaction([
-    prisma.batches.findMany({
-      where, skip, take,
-      include: { product: { select: { id: true, name: true, unit_type: true } } },
-      orderBy: { expiration_date: 'asc' },
+  const [rows, [{ total }]] = await Promise.all([
+    db.query.batches.findMany({
+      where, offset: skip, limit: take,
+      with: { product: { columns: { id: true, name: true, unit_type: true } } },
+      orderBy: [asc(batches.expiration_date)],
     }),
-    prisma.batches.count({ where }),
+    db.select({ total: count() }).from(batches).where(where),
   ])
 
-  return { batches, total, page, pageSize }
+  return { batches: rows, total, page, pageSize }
 }
 
 export async function getBatchById(id, pharmacyId, req) {
-  const batch = await prisma.batches.findFirst({
-    where: { id, pharmacyId, deletedAt: null },
-    include: { product: { select: { id: true, name: true } } },
+  const batch = await db.query.batches.findFirst({
+    where: and(eq(batches.id, id), eq(batches.pharmacyId, pharmacyId), isNull(batches.deletedAt)),
+    with: { product: { columns: { id: true, name: true } } },
   })
   if (!batch) throw { statusCode: 404, message: req.t('batch.not_found') }
   return batch
 }
 
 export async function createBatch(pharmacyId, userId, data, req) {
-  const exists = await prisma.batches.findFirst({
-    where: { number: data.number, pharmacyId },
+  const exists = await db.query.batches.findFirst({
+    where: and(eq(batches.number, data.number), eq(batches.pharmacyId, pharmacyId)),
   })
   if (exists) throw { statusCode: 409, message: req.t('batch.number_taken') }
 
-  const batch = await prisma.batches.create({
-    data: {
-      ...data,
-      pharmacyId,
-      expiration_date:    new Date(data.expiration_date),
-      manufacturing_date: data.manufacturing_date ? new Date(data.manufacturing_date) : null,
-    },
-    include: { product: { select: { id: true, name: true } } },
+  const [created] = await db.insert(batches).values({
+    ...toRow(batches, data),
+    pharmacyId,
+    expiration_date:    new Date(data.expiration_date),
+    manufacturing_date: data.manufacturing_date ? new Date(data.manufacturing_date) : null,
+  }).returning({ id: batches.id })
+
+  const batch = await db.query.batches.findFirst({
+    where: eq(batches.id, created.id),
+    with: { product: { columns: { id: true, name: true } } },
   })
 
   await createAuditLog({
@@ -64,10 +67,12 @@ export async function createBatch(pharmacyId, userId, data, req) {
 }
 
 export async function updateBatch(id, pharmacyId, userId, data, req) {
-  const batch = await prisma.batches.findFirst({ where: { id, pharmacyId, deletedAt: null } })
+  const batch = await db.query.batches.findFirst({
+    where: and(eq(batches.id, id), eq(batches.pharmacyId, pharmacyId), isNull(batches.deletedAt)),
+  })
   if (!batch) throw { statusCode: 404, message: req.t('batch.not_found') }
 
-  const updated = await prisma.batches.update({ where: { id }, data })
+  const [updated] = await db.update(batches).set(toRow(batches, data)).where(eq(batches.id, id)).returning()
 
   await createAuditLog({
     action: 'UPDATE', entity: 'batches', entity_id: id,
@@ -78,13 +83,13 @@ export async function updateBatch(id, pharmacyId, userId, data, req) {
 }
 
 export async function checkAndUpdateExpiredBatches(pharmacyId) {
-  const updated = await prisma.batches.updateMany({
-    where: {
-      pharmacyId,
-      status: 'ACTIVE',
-      expiration_date: { lt: new Date() },
-    },
-    data: { status: 'EXPIRED' },
-  })
-  return updated.count
+  const updated = await db.update(batches)
+    .set({ status: 'EXPIRED' })
+    .where(and(
+      eq(batches.pharmacyId, pharmacyId),
+      eq(batches.status, 'ACTIVE'),
+      lt(batches.expiration_date, new Date()),
+    ))
+    .returning({ id: batches.id })
+  return updated.length
 }

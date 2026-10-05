@@ -1,57 +1,61 @@
-import prisma from '../config/database.js'
+import { eq, and, isNull, ilike, asc, count } from 'drizzle-orm'
+import db from '../config/database.js'
+import { category, products } from '../db/schema.js'
+import { contains, toRow, withCounts } from '../db/helpers.js'
 import { createAuditLog } from '../utils/audit.js'
 
 export async function getCategories(query = {}) {
   const { search } = query
-  return prisma.category.findMany({
-    where: {
-      deletedAt: null,
-      ...(search && { name: { contains: search, mode: 'insensitive' } }),
-    },
-    include: { _count: { select: { produit: true } } },
-    orderBy: { name: 'asc' },
+  const rows = await db.query.category.findMany({
+    where: and(
+      isNull(category.deletedAt),
+      search ? contains(category.name, search) : undefined,
+    ),
+    orderBy: [asc(category.name)],
   })
+  return withCounts(rows, { produit: [products, products.categoryId] })
 }
 
 export async function createCategory(data, userId, pharmacyId, req) {
-  const exists = await prisma.category.findFirst({
-    where: { name: { equals: data.name, mode: 'insensitive' }, deletedAt: null },
+  const exists = await db.query.category.findFirst({
+    where: and(ilike(category.name, data.name.replace(/[\\%_]/g, '\\$&')), isNull(category.deletedAt)),
   })
   if (exists) throw { statusCode: 409, message: req.t('category.name_taken') }
 
-  const category = await prisma.category.create({ data })
+  const [created] = await db.insert(category).values(toRow(category, data)).returning()
 
   await createAuditLog({
-    action: 'CREATE', entity: 'category', entity_id: category.id,
+    action: 'CREATE', entity: 'category', entity_id: created.id,
     new_values: data, userId, pharmacyId, req,
   })
 
-  return category
+  return created
 }
 
 export async function updateCategory(id, data, userId, pharmacyId, req) {
-  const category = await prisma.category.findFirst({ where: { id, deletedAt: null } })
-  if (!category) throw { statusCode: 404, message: req.t('category.not_found') }
+  const existing = await db.query.category.findFirst({ where: and(eq(category.id, id), isNull(category.deletedAt)) })
+  if (!existing) throw { statusCode: 404, message: req.t('category.not_found') }
 
-  const updated = await prisma.category.update({ where: { id }, data })
+  const [updated] = await db.update(category).set(toRow(category, data)).where(eq(category.id, id)).returning()
 
   await createAuditLog({
     action: 'UPDATE', entity: 'category', entity_id: id,
-    old_values: category, new_values: data, userId, pharmacyId, req,
+    old_values: existing, new_values: data, userId, pharmacyId, req,
   })
 
   return updated
 }
 
 export async function deleteCategory(id, userId, pharmacyId, req) {
-  const category = await prisma.category.findFirst({ where: { id, deletedAt: null } })
-  if (!category) throw { statusCode: 404, message: req.t('category.not_found') }
+  const existing = await db.query.category.findFirst({ where: and(eq(category.id, id), isNull(category.deletedAt)) })
+  if (!existing) throw { statusCode: 404, message: req.t('category.not_found') }
 
   // Check if products use this category
-  const count = await prisma.products.count({ where: { categoryId: id, deletedAt: null } })
-  if (count > 0) throw { statusCode: 409, message: `Cannot delete: ${count} products use this category` }
+  const [{ total }] = await db.select({ total: count() }).from(products)
+    .where(and(eq(products.categoryId, id), isNull(products.deletedAt)))
+  if (total > 0) throw { statusCode: 409, message: `Cannot delete: ${total} products use this category` }
 
-  await prisma.category.update({ where: { id }, data: { deletedAt: new Date() } })
+  await db.update(category).set({ deletedAt: new Date() }).where(eq(category.id, id))
 
   await createAuditLog({
     action: 'DELETE', entity: 'category', entity_id: id,

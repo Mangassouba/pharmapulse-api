@@ -9,7 +9,7 @@ import { middleware as i18nMiddleware, i18next } from './i18n/index.js'
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js'
 import { authenticate, requireActivePharmacy } from './middlewares/auth.js'
 import logger from './config/logger.js'
-import prisma from './config/database.js'
+import { pool } from './config/database.js'
 
 // ── Pharmacy routes ──────────────────────────────────────────────────────────
 import authRoutes         from './routes/auth.routes.js'
@@ -73,7 +73,7 @@ if (process.env.NODE_ENV !== 'test') {
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get('/api/health', async (req, res) => {
   try {
-    await prisma.$queryRaw`SELECT 1`
+    await pool.query('SELECT 1')
     res.json({ success: true, status: 'healthy', timestamp: new Date().toISOString(), version: '1.0.0' })
   } catch {
     res.status(503).json({ success: false, status: 'unhealthy' })
@@ -111,7 +111,7 @@ app.use(errorHandler)
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 async function bootstrap() {
   try {
-    await prisma.$connect()
+    await pool.query('SELECT 1')
     logger.info('✅ Database connected')
     app.listen(PORT, () => {
       logger.info(`🚀 PharmaPulse API → http://localhost:${PORT}`)
@@ -124,8 +124,8 @@ async function bootstrap() {
   }
 }
 
-process.on('SIGTERM', async () => { await prisma.$disconnect(); process.exit(0) })
-process.on('SIGINT',  async () => { await prisma.$disconnect(); process.exit(0) })
+process.on('SIGTERM', async () => { await pool.end(); process.exit(0) })
+process.on('SIGINT',  async () => { await pool.end(); process.exit(0) })
 
 bootstrap()
 export default app

@@ -3,7 +3,12 @@ import * as ctrl from '../controllers/order.controller.js'
 import { authenticate, authorize } from '../middlewares/auth.js'
 import { validate } from '../middlewares/validate.js'
 import { orderValidator, updateOrderStatusValidator } from '../validators/order.validator.js'
-import prisma from '../config/database.js'
+import { eq, and, isNull } from 'drizzle-orm'
+import db from '../config/database.js'
+import { orders, products, stockMovements, notifications, users } from '../db/schema.js'
+import { createSaleFromOrder } from '../services/sale.service.js'
+
+const PAYMENT_METHODS = ['CASH', 'CARD', 'TRANSFER', 'INSURANCE']
 
 const router = Router()
 router.use(authenticate)
@@ -19,13 +24,13 @@ router.get('/verify/:code', async (req, res, next) => {
     const pharmacyId = req.user.pharmacyId
 
     // Sécurité: le code doit appartenir à CETTE pharmacie
-    const order = await prisma.orders.findFirst({
-      where: { pickup_code: code, pharmacyId, deletedAt: null },
-      include: {
+    const order = await db.query.orders.findFirst({
+      where: and(eq(orders.pickup_code, code), eq(orders.pharmacyId, pharmacyId), isNull(orders.deletedAt)),
+      with: {
         details: {
-          include: {
+          with: {
             product: {
-              select: { id:true, name:true, barcode:true, unit_type:true, unit_quantity:true }
+              columns: { id:true, name:true, barcode:true, unit_type:true, unit_quantity:true }
             }
           }
         }
@@ -98,17 +103,18 @@ router.patch('/:id/validate-pickup', authorize('ADMIN','MANAGER','CAISSIER'), as
     const pharmacyId = req.user.pharmacyId
     const userId     = req.user.id
     const { note }   = req.body
+    const payment_method = PAYMENT_METHODS.includes(req.body.payment_method) ? req.body.payment_method : 'CASH'
 
-    const order = await prisma.orders.findFirst({
-      where: { id: orderId, pharmacyId, deletedAt: null },
-      include: { details: { include: { product: true } } }
+    const order = await db.query.orders.findFirst({
+      where: and(eq(orders.id, orderId), eq(orders.pharmacyId, pharmacyId), isNull(orders.deletedAt)),
+      with: { details: { with: { product: true } } }
     })
 
     if (!order)                                     return res.status(404).json({ success:false, message:'Commande introuvable.'       })
     if (order.pickup_code_used || order.status === 'COMPLETED') return res.status(409).json({ success:false, message:'Déjà validée.'             })
     if (order.status === 'CANCELLED')               return res.status(409).json({ success:false, message:'Commande annulée.'           })
 
-    // Pour commandes ONLINE: vérifier + décrémenter stock maintenant
+    // Pour commandes ONLINE: vérifier stock
     if (order.source === 'ONLINE') {
       const errors = []
       for (const d of order.details) {
@@ -116,15 +122,17 @@ router.patch('/:id/validate-pickup', authorize('ADMIN','MANAGER','CAISSIER'), as
           errors.push(`"${d.product.name}" : seulement ${d.product.stock} en stock.`)
       }
       if (errors.length) return res.status(422).json({ success: false, message: errors.join(' ') })
+    }
 
-      for (const d of order.details) {
-        const ns = Math.max(0, d.product.stock - d.quantity)
-        await prisma.products.update({
-          where: { id: d.product.id },
-          data: { stock: ns, status: ns <= 0 ? 'OUT_OF_STOCK' : 'AVAILABLE' }
-        })
-        await prisma.stockMovements.create({
-          data: {
+    const { completed: updated, sale } = await db.transaction(async (tx) => {
+      // Pour commandes ONLINE: décrémenter stock maintenant
+      if (order.source === 'ONLINE') {
+        for (const d of order.details) {
+          const ns = Math.max(0, d.product.stock - d.quantity)
+          await tx.update(products)
+            .set({ stock: ns, status: ns <= 0 ? 'OUT_OF_STOCK' : 'AVAILABLE' })
+            .where(eq(products.id, d.product.id))
+          await tx.insert(stockMovements).values({
             productId:     d.product.id,
             pharmacyId,
             userId,
@@ -134,34 +142,43 @@ router.patch('/:id/validate-pickup', authorize('ADMIN','MANAGER','CAISSIER'), as
             new_stock:     ns,
             reference_id:  order.id,
             reason:        `Retrait commande en ligne ${order.pickup_code}`
-          }
+          })
+        }
+      }
+
+      // Marquer COMPLETED
+      const [completed] = await tx.update(orders)
+        .set({
+          status:           'COMPLETED',
+          pickup_code_used: true,
+          validated_by:     userId,
+          validated_at:     new Date(),
+          validated_note:   note?.trim() || null
         })
-      }
-    }
+        .where(eq(orders.id, orderId))
+        .returning()
 
-    // Marquer COMPLETED
-    const updated = await prisma.orders.update({
-      where: { id: orderId },
-      data: {
-        status:           'COMPLETED',
-        pickup_code_used: true,
-        validated_by:     userId,
-        validated_at:     new Date(),
-        validated_note:   note?.trim() || null
-      }
-    })
+      // Enregistrer le retrait comme vente (historique des ventes + CA)
+      const sale = await createSaleFromOrder(tx, order, { userId, payment_method, sale_date: completed.validated_at })
 
-    // Notification
-    await prisma.notifications.create({
-      data: {
+      // Notification
+      await tx.insert(notifications).values({
         pharmacyId,
         title:   `✅ Commande ${order.pickup_code} validée`,
-        message: `Retrait de ${order.customer} confirmé — ${Number(order.total_amount||0).toLocaleString('fr-FR')} F.`,
+        message: `Retrait de ${order.customer} confirmé — ${Number(order.total_amount||0).toLocaleString('fr-FR')} MRU.`,
         type:    'SUCCESS'
-      }
+      })
+
+      return { completed, sale }
     })
 
-    res.json({ success: true, message: `Commande ${order.pickup_code} validée avec succès.`, data: updated })
+    const validator = await db.query.users.findFirst({ where: eq(users.id, userId), columns: { id: true, name: true } })
+
+    res.json({
+      success: true,
+      message: `Commande ${order.pickup_code} validée avec succès.`,
+      data: { ...updated, validator: validator ?? null, sale: { id: sale.id, invoice_number: sale.invoice_number } },
+    })
   } catch (err) { next(err) }
 })
 

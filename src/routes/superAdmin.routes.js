@@ -3,6 +3,7 @@ import * as ctrl from '../controllers/superAdmin.controller.js'
 import { authenticate, superAdminOnly } from '../middlewares/auth.js'
 import { body } from 'express-validator'
 import { validate } from '../middlewares/validate.js'
+import { DURATIONS } from '../utils/subscription.js'
 
 const router = Router()
 
@@ -36,7 +37,6 @@ router.post('/pharmacies', [
   body('adminName').trim().notEmpty().withMessage('Nom admin requis'),
   body('adminEmail').isEmail().withMessage('Email admin invalide'),
   body('adminPassword').isLength({ min: 6 }).withMessage('Mot de passe min. 6 caractères'),
-  body('plan').optional().isIn(['FREE','STARTER','PRO','ENTERPRISE']),
   body('trialDays').optional().isInt({ min: 0 }),
 ], validate, ctrl.createPharmacy)
 
@@ -65,9 +65,7 @@ router.patch('/pharmacies/:id/status', [
  * Renew/upgrade subscription + record payment
  */
 router.post('/pharmacies/:pharmacyId/renew', [
-  body('months').optional().isInt({ min: 1, max: 36 }),
-  body('plan').optional().isIn(['FREE','STARTER','PRO','ENTERPRISE']),
-  body('amount').optional().isFloat({ min: 0 }),
+  body('months').isIn(DURATIONS).withMessage(`Durée invalide (${DURATIONS.join(', ')} mois)`).toInt(),
   body('method').optional().isIn(['CASH','CARD','TRANSFER','MOBILE_MONEY']),
   body('reference').optional().trim(),
 ], validate, ctrl.renewSubscription)

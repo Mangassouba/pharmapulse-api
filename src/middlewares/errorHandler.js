@@ -1,26 +1,23 @@
-import { Prisma } from '@prisma/client'
 import logger from '../config/logger.js'
 import { errorResponse } from '../utils/response.js'
+import { pgError } from '../db/helpers.js'
 
 export function errorHandler(err, req, res, next) {
   logger.error(err)
 
-  // Prisma unique constraint
-  if (err instanceof Prisma.PrismaClientKnownRequestError) {
-    if (err.code === 'P2002') {
+  // PostgreSQL constraint errors
+  const pgErr = pgError(err)
+  if (pgErr) {
+    // unique_violation
+    if (pgErr.code === '23505') {
       return errorResponse(res, {
         message: req.t('error.conflict'),
-        errors: err.meta?.target,
+        errors: pgErr.constraint,
         statusCode: 409,
       })
     }
-    if (err.code === 'P2025') {
-      return errorResponse(res, {
-        message: req.t('error.not_found'),
-        statusCode: 404,
-      })
-    }
-    if (err.code === 'P2003') {
+    // foreign_key_violation
+    if (pgErr.code === '23503') {
       return errorResponse(res, {
         message: req.t('error.bad_request') + ': foreign key constraint',
         statusCode: 400,

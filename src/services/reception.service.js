@@ -1,17 +1,20 @@
-import prisma from '../config/database.js'
+import { eq, and, isNull, gte, lte, desc, count, sql } from 'drizzle-orm'
+import db from '../config/database.js'
+import { products, batches, receptions, receptionDetails, stockMovements } from '../db/schema.js'
+import { contains } from '../db/helpers.js'
 import { getPaginationParams } from '../utils/response.js'
 import { createAuditLog } from '../utils/audit.js'
 
 export async function createReception(pharmacyId, userId, data, req) {
   const { supplier, invoice_number, items } = data
 
-  const reception = await prisma.$transaction(async (tx) => {
+  const receptionId = await db.transaction(async (tx) => {
     let totalAmount = 0
     const detailsData = []
 
     for (const item of items) {
-      const product = await tx.products.findFirst({
-        where: { id: item.productId, pharmacyId, deletedAt: null },
+      const product = await tx.query.products.findFirst({
+        where: and(eq(products.id, item.productId), eq(products.pharmacyId, pharmacyId), isNull(products.deletedAt)),
       })
       if (!product) throw { statusCode: 404, message: req.t('product.not_found') }
 
@@ -21,28 +24,25 @@ export async function createReception(pharmacyId, userId, data, req) {
       // Create or update batch if batch number provided
       let batchId = null
       if (item.batchNumber && item.expirationDate) {
-        const existing = await tx.batches.findFirst({
-          where: { number: item.batchNumber, pharmacyId },
+        const existing = await tx.query.batches.findFirst({
+          where: and(eq(batches.number, item.batchNumber), eq(batches.pharmacyId, pharmacyId)),
         })
         if (existing) {
-          await tx.batches.update({
-            where: { id: existing.id },
-            data: { quantity: { increment: item.quantity } },
-          })
+          await tx.update(batches)
+            .set({ quantity: sql`${batches.quantity} + ${item.quantity}` })
+            .where(eq(batches.id, existing.id))
           batchId = existing.id
         } else {
-          const batch = await tx.batches.create({
-            data: {
-              number:           item.batchNumber,
-              productId:        item.productId,
-              pharmacyId,
-              quantity:         item.quantity,
-              initial_quantity: item.quantity,
-              expiration_date:  new Date(item.expirationDate),
-              unit_type:        item.unit_type || null,
-              unit_quantity:    item.unit_quantity || null,
-            },
-          })
+          const [batch] = await tx.insert(batches).values({
+            number:           item.batchNumber,
+            productId:        item.productId,
+            pharmacyId,
+            quantity:         item.quantity,
+            initial_quantity: item.quantity,
+            expiration_date:  new Date(item.expirationDate),
+            unit_type:        item.unit_type || null,
+            unit_quantity:    item.unit_quantity || null,
+          }).returning({ id: batches.id })
           batchId = batch.id
         }
       }
@@ -59,23 +59,26 @@ export async function createReception(pharmacyId, userId, data, req) {
     }
 
     // Create reception with details
-    const newReception = await tx.receptions.create({
-      data: {
-        pharmacyId,
-        userId,
-        supplier,
-        invoice_number: invoice_number || null,
-        status:         'PENDING',
-        total_amount:   totalAmount,
-        details: { create: detailsData },
-      },
-      include: {
-        details: { include: { product: { select: { id: true, name: true } } } },
-        user:    { select: { id: true, name: true } },
-      },
-    })
+    const [newReception] = await tx.insert(receptions).values({
+      pharmacyId,
+      userId,
+      supplier,
+      invoice_number: invoice_number || null,
+      status:         'PENDING',
+      total_amount:   totalAmount,
+    }).returning({ id: receptions.id })
 
-    return newReception
+    await tx.insert(receptionDetails).values(detailsData.map(d => ({ ...d, receptionId: newReception.id })))
+
+    return newReception.id
+  })
+
+  const reception = await db.query.receptions.findFirst({
+    where: eq(receptions.id, receptionId),
+    with: {
+      details: { with: { product: { columns: { id: true, name: true } } } },
+      user:    { columns: { id: true, name: true } },
+    },
   })
 
   await createAuditLog({
@@ -87,43 +90,40 @@ export async function createReception(pharmacyId, userId, data, req) {
 }
 
 export async function completeReception(id, pharmacyId, userId, status, req) {
-  const reception = await prisma.receptions.findFirst({
-    where: { id, pharmacyId, deletedAt: null },
-    include: { details: true },
+  const reception = await db.query.receptions.findFirst({
+    where: and(eq(receptions.id, id), eq(receptions.pharmacyId, pharmacyId), isNull(receptions.deletedAt)),
+    with: { details: true },
   })
   if (!reception) throw { statusCode: 404, message: req.t('reception.not_found') }
   if (reception.status === 'COMPLETED') throw { statusCode: 409, message: 'Reception already completed' }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.receptions.update({ where: { id }, data: { status } })
+  await db.transaction(async (tx) => {
+    await tx.update(receptions).set({ status }).where(eq(receptions.id, id))
 
     if (status === 'COMPLETED' || status === 'PARTIAL') {
       for (const detail of reception.details) {
-        const product = await tx.products.findUnique({ where: { id: detail.productId } })
+        const product = await tx.query.products.findFirst({ where: eq(products.id, detail.productId) })
         const newStock = (product?.stock || 0) + detail.quantity
 
-        await tx.products.update({
-          where: { id: detail.productId },
-          data: {
+        await tx.update(products)
+          .set({
             stock:  newStock,
             status: newStock > 0 ? 'AVAILABLE' : 'OUT_OF_STOCK',
-          },
-        })
+          })
+          .where(eq(products.id, detail.productId))
 
-        await tx.stockMovements.create({
-          data: {
-            productId:      detail.productId,
-            pharmacyId,
-            userId,
-            batchId:        detail.batchId,
-            type:           'ENTRY',
-            quantity:       detail.quantity,
-            previous_stock: product?.stock || 0,
-            new_stock:      newStock,
-            reference_id:   id,
-            reason:         `Réception fournisseur: ${reception.supplier}`,
-            unit_type:      detail.unit_type,
-          },
+        await tx.insert(stockMovements).values({
+          productId:      detail.productId,
+          pharmacyId,
+          userId,
+          batchId:        detail.batchId,
+          type:           'ENTRY',
+          quantity:       detail.quantity,
+          previous_stock: product?.stock || 0,
+          new_stock:      newStock,
+          reference_id:   id,
+          reason:         `Réception fournisseur: ${reception.supplier}`,
+          unit_type:      detail.unit_type,
         })
       }
     }
@@ -139,43 +139,39 @@ export async function getReceptions(pharmacyId, query) {
   const { page, pageSize, skip, take } = getPaginationParams(query)
   const { search, status, dateFrom, dateTo } = query
 
-  const where = {
-    pharmacyId,
-    deletedAt: null,
-    ...(search && { supplier: { contains: search, mode: 'insensitive' } }),
-    ...(status && { status }),
-    ...(dateFrom || dateTo ? {
-      reception_date: {
-        ...(dateFrom && { gte: new Date(dateFrom) }),
-        ...(dateTo   && { lte: new Date(dateTo + 'T23:59:59') }),
-      },
-    } : {}),
-  }
+  const where = and(
+    eq(receptions.pharmacyId, pharmacyId),
+    isNull(receptions.deletedAt),
+    search   ? contains(receptions.supplier, search) : undefined,
+    status   ? eq(receptions.status, status) : undefined,
+    dateFrom ? gte(receptions.reception_date, new Date(dateFrom)) : undefined,
+    dateTo   ? lte(receptions.reception_date, new Date(dateTo + 'T23:59:59')) : undefined,
+  )
 
-  const [receptions, total] = await prisma.$transaction([
-    prisma.receptions.findMany({
-      where, skip, take,
-      include: {
-        user:    { select: { id: true, name: true } },
-        details: { include: { product: { select: { id: true, name: true } } } },
+  const [rows, [{ total }]] = await Promise.all([
+    db.query.receptions.findMany({
+      where, offset: skip, limit: take,
+      with: {
+        user:    { columns: { id: true, name: true } },
+        details: { with: { product: { columns: { id: true, name: true } } } },
       },
-      orderBy: { reception_date: 'desc' },
+      orderBy: [desc(receptions.reception_date)],
     }),
-    prisma.receptions.count({ where }),
+    db.select({ total: count() }).from(receptions).where(where),
   ])
 
-  return { receptions, total, page, pageSize }
+  return { receptions: rows, total, page, pageSize }
 }
 
 export async function getReceptionById(id, pharmacyId, req) {
-  const reception = await prisma.receptions.findFirst({
-    where: { id, pharmacyId, deletedAt: null },
-    include: {
-      user:    { select: { id: true, name: true } },
+  const reception = await db.query.receptions.findFirst({
+    where: and(eq(receptions.id, id), eq(receptions.pharmacyId, pharmacyId), isNull(receptions.deletedAt)),
+    with: {
+      user:    { columns: { id: true, name: true } },
       details: {
-        include: {
-          product: { select: { id: true, name: true, barcode: true } },
-          batch:   { select: { id: true, number: true, expiration_date: true } },
+        with: {
+          product: { columns: { id: true, name: true, barcode: true } },
+          batch:   { columns: { id: true, number: true, expiration_date: true } },
         },
       },
     },
