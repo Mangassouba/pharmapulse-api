@@ -15,9 +15,9 @@ const transporter = nodemailer.createTransport({
   auth: SMTP_USER ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
 })
 
-export async function sendMail({ to, subject, text, html, attachments }) {
+export async function sendMail({ to, cc, subject, text, html, attachments }) {
   try {
-    const info = await transporter.sendMail({ from: MAIL_FROM, to, subject, text, html, attachments })
+    const info = await transporter.sendMail({ from: MAIL_FROM, to, cc, subject, text, html, attachments })
     logger.info(`Mail envoyé à ${to} (${info.messageId})`)
     return info
   } catch (err) {
@@ -44,5 +44,56 @@ export function passwordResetEmail({ name, account, link, color = '#16a34a' }) {
 <p>Pour réinitialiser le mot de passe de votre compte <strong>${escapeHtml(account)}</strong>, cliquez sur le lien ci-dessous (valable 1 heure) :</p>
 <p><a href="${link}" style="display:inline-block;padding:10px 18px;background:${color};color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">Réinitialiser mon mot de passe</a></p>
 <p style="color:#6b7280;font-size:13px;">Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>`,
+  }
+}
+
+export function newRegistrationEmail({ pharmacy, admin, link }) {
+  const rows = [
+    ['Pharmacie', pharmacy.name],
+    ['Ville', [pharmacy.city, pharmacy.country].filter(Boolean).join(', ')],
+    ['Licence', pharmacy.license_number],
+    ['Téléphone', pharmacy.phone],
+    ['Administrateur', `${admin.name} <${admin.email}>`],
+  ].filter(([, v]) => v)
+
+  return {
+    subject: `PharmaPulse — Nouvelle inscription : ${pharmacy.name}`,
+    text: `Une nouvelle pharmacie vient de s'inscrire sur PharmaPulse.\n\n${rows.map(([k, v]) => `${k} : ${v}`).join('\n')}\n\nVoir les pharmacies : ${link}`,
+    html: `<p>Une nouvelle pharmacie vient de s'inscrire sur PharmaPulse.</p>
+<table style="border-collapse:collapse;font-size:14px;">${rows.map(([k, v]) => `<tr><td style="padding:4px 12px 4px 0;color:#6b7280;">${k}</td><td style="padding:4px 0;font-weight:600;">${escapeHtml(v)}</td></tr>`).join('')}</table>
+<p><a href="${link}" style="display:inline-block;margin-top:8px;padding:10px 18px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">Voir dans le panel Super Admin</a></p>`,
+  }
+}
+
+export function welcomeEmail({ pharmacy, admin, trialEnd, link }) {
+  const trialEndLabel = trialEnd ? new Date(trialEnd).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : null
+  const trialLine = trialEndLabel ? `Votre période d'essai gratuite est active jusqu'au ${trialEndLabel}.` : ''
+
+  return {
+    subject: `Bienvenue sur PharmaPulse, ${pharmacy.name} !`,
+    text: `Bonjour ${admin.name},\n\nBienvenue sur PharmaPulse ! Le compte de votre pharmacie « ${pharmacy.name} » est prêt.\n${trialLine}\n\nVous pouvez dès maintenant :\n- ajouter vos produits et lots\n- enregistrer vos ventes et réceptions\n- inviter votre équipe\n\nConnexion : ${link}\nIdentifiant : ${admin.email}\n\nL'équipe PharmaPulse`,
+    html: `<p>Bonjour ${escapeHtml(admin.name)},</p>
+<p>Bienvenue sur <strong>PharmaPulse</strong> ! Le compte de votre pharmacie <strong>${escapeHtml(pharmacy.name)}</strong> est prêt.</p>
+${trialLine ? `<p style="padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;color:#166534;">${escapeHtml(trialLine)}</p>` : ''}
+<p>Vous pouvez dès maintenant :</p>
+<ul><li>ajouter vos produits et lots</li><li>enregistrer vos ventes et réceptions</li><li>inviter votre équipe</li></ul>
+<p><a href="${link}" style="display:inline-block;padding:10px 18px;background:#16a34a;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">Accéder à mon espace</a></p>
+<p style="color:#6b7280;font-size:13px;">Identifiant : ${escapeHtml(admin.email)}</p>
+<p>L'équipe PharmaPulse</p>`,
+  }
+}
+
+export function trialExpiringEmail({ pharmacy, daysLeft, endDate, link }) {
+  const endLabel = new Date(endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+  const when     = daysLeft <= 1 ? 'demain' : `dans ${daysLeft} jours`
+
+  return {
+    subject: `PharmaPulse — Votre période d'essai se termine ${when}`,
+    text: `Bonjour,\n\nLa période d'essai gratuite de « ${pharmacy.name} » se termine ${when} (le ${endLabel}).\n\nPour continuer à utiliser PharmaPulse sans interruption, répondez à cet email pour activer votre abonnement.\n\nAccéder à votre espace : ${link}\n\nL'équipe PharmaPulse`,
+    html: `<p>Bonjour,</p>
+<p style="padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;color:#92400e;">La période d'essai gratuite de <strong>${escapeHtml(pharmacy.name)}</strong> se termine <strong>${when}</strong> (le ${endLabel}).</p>
+<p>Pour continuer à utiliser PharmaPulse sans interruption, répondez à cet email pour activer votre abonnement.</p>
+<p><a href="${link}" style="display:inline-block;padding:10px 18px;background:#16a34a;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">Accéder à mon espace</a></p>
+<p>L'équipe PharmaPulse</p>`,
   }
 }

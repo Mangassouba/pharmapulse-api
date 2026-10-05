@@ -1,11 +1,13 @@
 import bcrypt from 'bcryptjs'
 import { eq, and, isNull } from 'drizzle-orm'
 import db from '../config/database.js'
-import { pharmacy as pharmacyTable, users, category, subscriptions } from '../db/schema.js'
+import { pharmacy as pharmacyTable, users, category, subscriptions, superAdmins } from '../db/schema.js'
 import { signToken, signRefreshToken, signResetToken, decodeResetToken, verifyResetToken } from '../config/jwt.js'
-import { sendMail, passwordResetEmail } from '../config/mailer.js'
+import { sendMail, passwordResetEmail, newRegistrationEmail, welcomeEmail } from '../config/mailer.js'
 import { createAuditLog } from '../utils/audit.js'
 import { TRIAL_DAYS, DEFAULT_PLAN, CURRENCY } from '../utils/subscription.js'
+
+const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '')
 
 const meQuery = {
   columns: {
@@ -102,6 +104,10 @@ export async function registerPharmacyAndAdmin(data, req) {
     req,
   })
 
+  // Fire-and-forget: a mail failure must not block the registration
+  notifySuperAdminsOfRegistration(result.pharmacy, result.user).catch(() => {})
+  sendWelcomeEmail(result.pharmacy, result.user, result.subscription).catch(() => {})
+
   const { password: _, ...safeUser } = result.user
   const token        = signToken({ id: result.user.id, pharmacyId: result.pharmacy.id, role: 'ADMIN', email })
   const refreshToken = signRefreshToken({ id: result.user.id })
@@ -160,7 +166,29 @@ export async function changePassword(userId, currentPassword, newPassword, req) 
   })
 }
 
-const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '')
+async function notifySuperAdminsOfRegistration(pharmacy, admin) {
+  const recipients = await db.query.superAdmins.findMany({
+    where: eq(superAdmins.is_active, true),
+    columns: { email: true },
+  })
+  if (!recipients.length) return
+
+  await sendMail({
+    to: recipients.map(r => r.email),
+    ...newRegistrationEmail({ pharmacy, admin, link: `${FRONTEND_URL}/super/pharmacies` }),
+  })
+}
+
+async function sendWelcomeEmail(pharmacy, admin, subscription) {
+  // Copy the pharmacy's own address when it differs from the admin's
+  const cc = pharmacy.email && pharmacy.email.toLowerCase() !== admin.email.toLowerCase() ? pharmacy.email : undefined
+
+  await sendMail({
+    to: admin.email,
+    cc,
+    ...welcomeEmail({ pharmacy, admin, trialEnd: subscription.trial_end_date, link: `${FRONTEND_URL}/login` }),
+  })
+}
 
 export async function requestPasswordReset(email, req) {
   // An email can exist in several pharmacies: send one link per active account.

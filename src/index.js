@@ -10,6 +10,7 @@ import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js'
 import { authenticate, requireActivePharmacy } from './middlewares/auth.js'
 import logger from './config/logger.js'
 import { pool } from './config/database.js'
+import { startTrialReminderJob } from './jobs/trialReminders.js'
 
 // ── Pharmacy routes ──────────────────────────────────────────────────────────
 import authRoutes         from './routes/auth.routes.js'
@@ -121,6 +122,7 @@ async function bootstrap() {
       logger.info(`🚀 PharmaPulse API → http://localhost:${PORT}`)
       logger.info(`🔐 SuperAdmin panel → http://localhost:${PORT}/api/super`)
       logger.info(`📋 Environment: ${process.env.NODE_ENV || 'development'}`)
+      if (process.env.NODE_ENV !== 'test') startTrialReminderJob()
     })
   } catch (err) {
     logger.error('❌ Failed to start:', err)
