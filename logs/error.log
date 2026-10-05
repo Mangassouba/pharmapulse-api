@@ -102,3 +102,10 @@ Invalid value for argument `status`. Expected OrderStatus.
 2026-09-30 14:48:04 [error]: Email ou mot de passe incorrect
 2026-09-30 14:48:38 [error]: Email ou mot de passe incorrect
 2026-09-30 15:45:10 [error]: Email ou mot de passe incorrect
+2026-10-05 11:19:20 [error]: Email ou mot de passe incorrect
+2026-10-05 11:19:25 [error]: Email ou mot de passe incorrect
+2026-10-05 11:19:40 [error]: Le fichier n'est pas une image valide.
+2026-10-05 11:19:40 [error]: Format non supporté (PNG, JPEG ou WebP).
+2026-10-05 11:34:49 [error]: Le fichier n'est pas une image valide.
+2026-10-05 11:34:49 [error]: Le fichier n'est pas une image valide.
+2026-10-05 12:02:35 [error]: Le fichier n'est pas une image valide.

@@ -89,6 +89,7 @@ export const pharmacy = pgTable('pharmacy', {
   duty_days:        integer('duty_days').array().notNull().default([]), // jours de garde : 0 = dimanche … 6 = samedi
   duty_start:       text('duty_start'), // début de garde 'HH:MM' — null = toute la journée
   duty_end:         text('duty_end'),   // fin de garde 'HH:MM' ; si < duty_start, la garde finit le lendemain
+  logo_updated_at:  ts('logo_updated_at'), // null = pas de logo ; sert aussi de version pour le cache (?v=)
   createdAt:        createdAt(),
   updatedAt:        updatedAt(),
   deletedAt:        ts('deletedAt'),
@@ -101,6 +102,16 @@ export const pharmacy = pgTable('pharmacy', {
 ])
 
 // ==================== SUBSCRIPTION ====================
+
+// Logo kept out of the pharmacy row so it never bloats login / listing payloads
+export const pharmacyLogos = pgTable('pharmacy_logos', {
+  pharmacyId: integer('pharmacyId').primaryKey(),
+  mime:       text('mime').notNull(),
+  data:       text('data').notNull(), // base64
+  updatedAt:  updatedAt(),
+}, (t) => [
+  fk('pharmacy_logos', t.pharmacyId, pharmacy.id, 'cascade'),
+])
 
 export const subscriptions = pgTable('subscriptions', {
   id:             serial('id').primaryKey(),

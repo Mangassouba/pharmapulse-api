@@ -9,6 +9,8 @@ import { contains, withCounts } from '../db/helpers.js'
 import { signToken, signResetToken, decodeResetToken, verifyResetToken } from '../config/jwt.js'
 import { sendMail, passwordResetEmail } from '../config/mailer.js'
 import { getPaginationParams } from '../utils/response.js'
+import { parseImageDataUrl } from '../utils/image.js'
+import { getSiteName, setSiteName, setSiteLogo, removeSiteLogo } from './site.service.js'
 import { subscriptionAmount, DEFAULT_PLAN, CURRENCY, MONTHLY_PRICE, TRIAL_DAYS } from '../utils/subscription.js'
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -37,7 +39,7 @@ export async function requestSuperAdminPasswordReset(email, req) {
 
   const link = `${FRONTEND_URL}/super/reset-password?token=${signResetToken(admin.id, admin.password, SUPER_RESET_PURPOSE)}`
   try {
-    await sendMail({ to: admin.email, ...passwordResetEmail({ name: admin.name, account: 'Super Administrateur', link, color: '#7c3aed' }) })
+    await sendMail({ to: admin.email, ...await passwordResetEmail({ name: admin.name, account: 'Super Administrateur', link, color: '#7c3aed' }) })
   } catch {
     // Already logged by sendMail; the response stays generic to avoid revealing accounts.
     return
@@ -232,7 +234,7 @@ export async function updatePharmacyStatus(id, status, reason, adminId, req) {
     pharmacyId: id,
     title: isActive ? '✅ Pharmacie réactivée' : '⚠️ Pharmacie suspendue',
     message: isActive
-      ? 'Votre pharmacie a été réactivée. Vous pouvez à nouveau utiliser PharmaPulse.'
+      ? `Votre pharmacie a été réactivée. Vous pouvez à nouveau utiliser ${await getSiteName()}.`
       : `Votre pharmacie a été suspendue. Raison: ${reason || 'Non précisée'}. Contactez le support.`,
     type: isActive ? 'SUCCESS' : 'ERROR',
   })
@@ -411,4 +413,25 @@ async function logAction(superAdminId, action, description, targetType, targetId
       ip_address:  req?.ip    || null,
     })
   } catch {}
+}
+
+// ── Site settings (name + logo) ───────────────────────────────────────────────
+
+export async function updateSiteName(name, adminId, req) {
+  const saved = await setSiteName(name)
+  await logAction(adminId, 'UPDATE_SITE_NAME', `Nom du site : ${saved}`, null, null, req)
+  return { name: saved }
+}
+
+export async function updateSiteLogo(dataUrl, adminId, req) {
+  const { mime, data, bytes } = parseImageDataUrl(dataUrl)
+  const row = await setSiteLogo({ mime, data })
+  await logAction(adminId, 'UPDATE_SITE_LOGO', `Logo du site mis à jour (${mime}, ${Math.round(bytes / 1024)} Ko)`, null, null, req)
+  return { logo_updated_at: row.updatedAt }
+}
+
+export async function deleteSiteLogo(adminId, req) {
+  await removeSiteLogo()
+  await logAction(adminId, 'DELETE_SITE_LOGO', 'Logo du site supprimé', null, null, req)
+  return { logo_updated_at: null }
 }

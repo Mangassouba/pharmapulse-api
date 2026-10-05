@@ -64,6 +64,20 @@ export async function updateDuty(req, res, next) {
   } catch (err) { next(err) }
 }
 
+export async function updateLogo(req, res, next) {
+  try {
+    const data = await authService.updateLogo(req.user.pharmacyId, req.body.logo, req)
+    return successResponse(res, { message: 'Logo mis à jour', data })
+  } catch (err) { next(err) }
+}
+
+export async function deleteLogo(req, res, next) {
+  try {
+    const data = await authService.deleteLogo(req.user.pharmacyId, req)
+    return successResponse(res, { message: 'Logo supprimé', data })
+  } catch (err) { next(err) }
+}
+
 export async function logout(req, res) {
   return successResponse(res, { message: req.t('auth.logout_success') })
 }

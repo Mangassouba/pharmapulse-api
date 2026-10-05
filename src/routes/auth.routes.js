@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { body } from 'express-validator'
 import * as ctrl from '../controllers/auth.controller.js'
 import { authenticate, authorize } from '../middlewares/auth.js'
 import { validate } from '../middlewares/validate.js'
@@ -68,5 +69,19 @@ router.put('/password', authenticate, changePasswordValidator, validate, ctrl.ch
  * @access Private (ADMIN)
  */
 router.put('/pharmacy/duty', authenticate, authorize('ADMIN'), dutyValidator, validate, ctrl.updateDuty)
+
+/**
+ * @route  PUT /api/auth/pharmacy/logo
+ * @desc   Upload the pharmacy logo as a data URL (PNG, JPEG or WebP, max 512 KB)
+ * @access Private (ADMIN)
+ */
+router.put('/pharmacy/logo', authenticate, authorize('ADMIN'), body('logo').isString().withMessage('Logo requis'), validate, ctrl.updateLogo)
+
+/**
+ * @route  DELETE /api/auth/pharmacy/logo
+ * @desc   Remove the pharmacy logo
+ * @access Private (ADMIN)
+ */
+router.delete('/pharmacy/logo', authenticate, authorize('ADMIN'), ctrl.deleteLogo)
 
 export default router

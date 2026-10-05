@@ -26,6 +26,29 @@ export async function resetPassword(req, res, next) {
   } catch (err) { next(err) }
 }
 
+// ── Site (name + logo) ────────────────────────────────────────────────────────
+
+export async function updateSiteName(req, res, next) {
+  try {
+    const data = await svc.updateSiteName(req.body.name, req.user.id, req)
+    return successResponse(res, { message: 'Nom du site mis à jour', data })
+  } catch (err) { next(err) }
+}
+
+export async function updateSiteLogo(req, res, next) {
+  try {
+    const data = await svc.updateSiteLogo(req.body.logo, req.user.id, req)
+    return successResponse(res, { message: 'Logo du site mis à jour', data })
+  } catch (err) { next(err) }
+}
+
+export async function deleteSiteLogo(req, res, next) {
+  try {
+    const data = await svc.deleteSiteLogo(req.user.id, req)
+    return successResponse(res, { message: 'Logo du site supprimé', data })
+  } catch (err) { next(err) }
+}
+
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
 export async function platformStats(req, res, next) {

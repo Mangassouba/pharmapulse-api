@@ -36,6 +36,9 @@ const app  = express()
 const PORT = process.env.PORT || 3000
 
 // ── Security ──────────────────────────────────────────────────────────────────
+// Behind a host's proxy (Render…): read the real client IP from X-Forwarded-For,
+// otherwise rate limits and audit IPs see every user as the proxy
+if (process.env.TRUST_PROXY) app.set('trust proxy', Number(process.env.TRUST_PROXY) || process.env.TRUST_PROXY)
 app.use(helmet())
 app.use(compression())
 app.use(cors({

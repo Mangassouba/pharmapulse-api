@@ -24,6 +24,26 @@ router.get('/stats', ctrl.platformStats)
  */
 router.get('/logs', ctrl.getLogs)
 
+// ── Site ──────────────────────────────────────────────────────────────────────
+
+/**
+ * PUT /api/super/site — set the platform name (empty = back to the default)
+ * Public read: GET /api/public/site
+ */
+router.put('/site', [
+  body('name').optional({ values: 'null' }).isString().trim().isLength({ max: 60 }).withMessage('Le nom ne doit pas dépasser 60 caractères'),
+], validate, ctrl.updateSiteName)
+
+/**
+ * PUT    /api/super/site/logo   — upload the platform logo as a data URL (PNG, JPEG or WebP, max 512 KB)
+ * DELETE /api/super/site/logo   — remove it (the default icon is shown again)
+ * Public read: GET /api/public/site/logo
+ */
+router.put('/site/logo', [
+  body('logo').isString().withMessage('Logo requis'),
+], validate, ctrl.updateSiteLogo)
+router.delete('/site/logo', ctrl.deleteSiteLogo)
+
 // ── Pharmacies ────────────────────────────────────────────────────────────────
 
 /**

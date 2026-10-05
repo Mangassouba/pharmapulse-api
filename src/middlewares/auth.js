@@ -3,6 +3,7 @@ import { verifyToken } from '../config/jwt.js'
 import { errorResponse } from '../utils/response.js'
 import db from '../config/database.js'
 import { pharmacy as pharmacyTable } from '../db/schema.js'
+import { getSiteName } from '../services/site.service.js'
 
 export function authenticate(req, res, next) {
   const authHeader = req.headers.authorization
@@ -55,7 +56,7 @@ export async function requireActivePharmacy(req, res, next) {
     if (!pharmacy.is_active || pharmacy.status !== 'ACTIVE') {
       const msg = pharmacy.status === 'SUSPENDED'
         ? 'Pharmacie suspendue pour non-paiement. Contactez votre administrateur.'
-        : 'Pharmacie désactivée. Contactez le support PharmaPulse.'
+        : `Pharmacie désactivée. Contactez le support ${await getSiteName()}.`
       return errorResponse(res, { message: msg, statusCode: 403 })
     }
 

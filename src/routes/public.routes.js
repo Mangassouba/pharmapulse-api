@@ -5,8 +5,10 @@
 import { Router } from 'express'
 import { eq, ne, and, gt, isNull, inArray, asc, desc, count } from 'drizzle-orm'
 import db from '../config/database.js'
-import { pharmacy, products, users, orders, orderDetails, notifications } from '../db/schema.js'
+import { pharmacy, pharmacyLogos, products, users, orders, orderDetails, notifications } from '../db/schema.js'
 import { contains, withCounts } from '../db/helpers.js'
+import { sendImage } from '../utils/image.js'
+import { getSiteLogo, getSiteName } from '../services/site.service.js'
 
 const router = Router()
 
@@ -78,6 +80,34 @@ router.get('/pharmacies/:id', async (req, res, next) => {
     const [ph] = await findPublicPharmacies(and(eq(pharmacy.id, parseInt(req.params.id)), activePharmacy))
     if (!ph) return res.status(404).json({ success: false, message: 'Pharmacie introuvable.' })
     res.json({ success: true, data: ph })
+  } catch (err) { next(err) }
+})
+
+router.get('/pharmacies/:id/logo', async (req, res, next) => {
+  try {
+    const logo = await db.query.pharmacyLogos.findFirst({ where: eq(pharmacyLogos.pharmacyId, parseInt(req.params.id)) })
+    if (!logo) return res.status(404).json({ success: false, message: 'Logo introuvable.' })
+
+    sendImage(res, logo, !!req.query.v)
+  } catch (err) { next(err) }
+})
+
+// ══════════════════════════════════════════════════════════════
+// SITE (logo de la plateforme, géré par le SuperAdmin)
+// ══════════════════════════════════════════════════════════════
+
+router.get('/site', async (req, res, next) => {
+  try {
+    const [name, logo] = await Promise.all([getSiteName(), getSiteLogo({ withData: false })])
+    res.json({ success: true, data: { name, logo_updated_at: logo?.updatedAt ?? null } })
+  } catch (err) { next(err) }
+})
+
+router.get('/site/logo', async (req, res, next) => {
+  try {
+    const logo = await getSiteLogo()
+    if (!logo) return res.status(404).json({ success: false, message: 'Logo introuvable.' })
+    sendImage(res, logo.value, !!req.query.v)
   } catch (err) { next(err) }
 })
 

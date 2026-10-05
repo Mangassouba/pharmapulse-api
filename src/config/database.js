@@ -6,7 +6,11 @@ const globalForDb = globalThis
 
 export const pool =
   globalForDb.pgPool ??
-  new pg.Pool({ connectionString: process.env.DATABASE_URL })
+  new pg.Pool({
+    connectionString: process.env.DATABASE_URL,
+    // Hosted Postgres (Supabase…) requires TLS; its certificate is signed by the provider's own CA
+    ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
+  })
 
 if (process.env.NODE_ENV !== 'production') {
   globalForDb.pgPool = pool

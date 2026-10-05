@@ -1,10 +1,11 @@
 import bcrypt from 'bcryptjs'
 import { eq, and, isNull } from 'drizzle-orm'
 import db from '../config/database.js'
-import { pharmacy as pharmacyTable, users, category, subscriptions, superAdmins } from '../db/schema.js'
+import { pharmacy as pharmacyTable, pharmacyLogos, users, category, subscriptions, superAdmins } from '../db/schema.js'
 import { signToken, signRefreshToken, signResetToken, decodeResetToken, verifyResetToken } from '../config/jwt.js'
 import { sendMail, passwordResetEmail, newRegistrationEmail, welcomeEmail } from '../config/mailer.js'
 import { createAuditLog } from '../utils/audit.js'
+import { parseImageDataUrl } from '../utils/image.js'
 import { TRIAL_DAYS, DEFAULT_PLAN, CURRENCY } from '../utils/subscription.js'
 
 const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '')
@@ -16,7 +17,7 @@ const meQuery = {
   },
   with: {
     pharmacy: {
-      columns: { id: true, name: true, email: true, phone: true, address: true, city: true, country: true, is_active: true, duty_days: true, duty_start: true, duty_end: true },
+      columns: { id: true, name: true, email: true, phone: true, address: true, city: true, country: true, is_active: true, duty_days: true, duty_start: true, duty_end: true, logo_updated_at: true },
     },
   },
 }
@@ -175,7 +176,7 @@ async function notifySuperAdminsOfRegistration(pharmacy, admin) {
 
   await sendMail({
     to: recipients.map(r => r.email),
-    ...newRegistrationEmail({ pharmacy, admin, link: `${FRONTEND_URL}/super/pharmacies` }),
+    ...await newRegistrationEmail({ pharmacy, admin, link: `${FRONTEND_URL}/super/pharmacies` }),
   })
 }
 
@@ -186,7 +187,7 @@ async function sendWelcomeEmail(pharmacy, admin, subscription) {
   await sendMail({
     to: admin.email,
     cc,
-    ...welcomeEmail({ pharmacy, admin, trialEnd: subscription.trial_end_date, link: `${FRONTEND_URL}/login` }),
+    ...await welcomeEmail({ pharmacy, admin, trialEnd: subscription.trial_end_date, link: `${FRONTEND_URL}/login` }),
   })
 }
 
@@ -200,7 +201,7 @@ export async function requestPasswordReset(email, req) {
   for (const user of accounts) {
     const link = `${FRONTEND_URL}/reset-password?token=${signResetToken(user.id, user.password)}`
     try {
-      await sendMail({ to: user.email, ...passwordResetEmail({ name: user.name, account: user.pharmacy.name, link }) })
+      await sendMail({ to: user.email, ...await passwordResetEmail({ name: user.name, account: user.pharmacy.name, link }) })
     } catch {
       // Already logged by sendMail; the response stays generic to avoid revealing accounts.
       continue
@@ -299,4 +300,46 @@ export async function getMe(userId) {
     ...meQuery,
   })
   return user ?? null
+}
+
+export async function updateLogo(pharmacyId, dataUrl, req) {
+  const { mime, data, bytes } = parseImageDataUrl(dataUrl)
+
+  const now = new Date()
+  await db.transaction(async (tx) => {
+    await tx.insert(pharmacyLogos)
+      .values({ pharmacyId, mime, data })
+      .onConflictDoUpdate({ target: pharmacyLogos.pharmacyId, set: { mime, data, updatedAt: now } })
+    await tx.update(pharmacyTable).set({ logo_updated_at: now }).where(eq(pharmacyTable.id, pharmacyId))
+  })
+
+  await createAuditLog({
+    action: 'UPDATE_LOGO',
+    entity: 'pharmacy',
+    entity_id: pharmacyId,
+    new_values: { mime, bytes },
+    userId: req.user.id,
+    pharmacyId,
+    req,
+  })
+
+  return { logo_updated_at: now }
+}
+
+export async function deleteLogo(pharmacyId, req) {
+  await db.transaction(async (tx) => {
+    await tx.delete(pharmacyLogos).where(eq(pharmacyLogos.pharmacyId, pharmacyId))
+    await tx.update(pharmacyTable).set({ logo_updated_at: null }).where(eq(pharmacyTable.id, pharmacyId))
+  })
+
+  await createAuditLog({
+    action: 'DELETE_LOGO',
+    entity: 'pharmacy',
+    entity_id: pharmacyId,
+    userId: req.user.id,
+    pharmacyId,
+    req,
+  })
+
+  return { logo_updated_at: null }
 }

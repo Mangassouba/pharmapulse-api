@@ -54,7 +54,7 @@ export async function runTrialReminders() {
       await sendMail({
         to: admins.map(a => a.email),
         cc,
-        ...trialExpiringEmail({ pharmacy: sub.pharmacy, daysLeft, endDate: sub.end_date, link: `${FRONTEND_URL}/login` }),
+        ...await trialExpiringEmail({ pharmacy: sub.pharmacy, daysLeft, endDate: sub.end_date, link: `${FRONTEND_URL}/login` }),
       })
     } catch {
       continue // already logged by sendMail; retried on the next run
