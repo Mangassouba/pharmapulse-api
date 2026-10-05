@@ -20,3 +20,19 @@ export function verifyToken(token) {
 export function verifyRefreshToken(token) {
   return jwt.verify(token, JWT_REFRESH_SECRET)
 }
+
+// Reset tokens are signed with the user's current password hash: once the password
+// changes, every previously issued link becomes invalid (single use).
+const JWT_RESET_EXPIRES_IN = process.env.JWT_RESET_EXPIRES_IN || '1h'
+
+export function signResetToken(userId, passwordHash, purpose = 'reset') {
+  return jwt.sign({ id: userId, purpose }, JWT_SECRET + passwordHash, { expiresIn: JWT_RESET_EXPIRES_IN })
+}
+
+export function decodeResetToken(token) {
+  return jwt.decode(token)
+}
+
+export function verifyResetToken(token, passwordHash) {
+  return jwt.verify(token, JWT_SECRET + passwordHash)
+}

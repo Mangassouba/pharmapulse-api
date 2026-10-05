@@ -10,7 +10,10 @@
     "token_expired": "Session expirée, veuillez vous reconnecter",
     "token_invalid": "Token invalide",
     "email_taken": "Cet email est déjà utilisé dans cette pharmacie",
-    "password_mismatch": "Les mots de passe ne correspondent pas"
+    "password_mismatch": "Les mots de passe ne correspondent pas",
+    "reset_link_sent": "Si un compte existe pour cet email, un lien de réinitialisation a été envoyé",
+    "reset_success": "Mot de passe réinitialisé, vous pouvez vous connecter",
+    "reset_token_invalid": "Lien de réinitialisation invalide ou expiré"
   },
   "pharmacy": {
     "created": "Pharmacie créée avec succès",

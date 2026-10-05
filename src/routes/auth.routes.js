@@ -2,7 +2,7 @@ import { Router } from 'express'
 import * as ctrl from '../controllers/auth.controller.js'
 import { authenticate, authorize } from '../middlewares/auth.js'
 import { validate } from '../middlewares/validate.js'
-import { registerValidator, loginValidator, changePasswordValidator, updateMeValidator, dutyValidator } from '../validators/auth.validator.js'
+import { registerValidator, loginValidator, changePasswordValidator, updateMeValidator, dutyValidator, forgotPasswordValidator, resetPasswordValidator } from '../validators/auth.validator.js'
 
 const router = Router()
 
@@ -19,6 +19,20 @@ router.post('/register', registerValidator, validate, ctrl.register)
  * @access Public
  */
 router.post('/login', loginValidator, validate, ctrl.login)
+
+/**
+ * @route  POST /api/auth/forgot-password
+ * @desc   Email a password reset link (generic response, never reveals whether the account exists)
+ * @access Public
+ */
+router.post('/forgot-password', forgotPasswordValidator, validate, ctrl.forgotPassword)
+
+/**
+ * @route  POST /api/auth/reset-password
+ * @desc   Set a new password from a reset link token
+ * @access Public
+ */
+router.post('/reset-password', resetPasswordValidator, validate, ctrl.resetPassword)
 
 /**
  * @route  GET /api/auth/me

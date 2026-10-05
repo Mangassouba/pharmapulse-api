@@ -1421,3 +1421,14 @@ Invalid value for argument `status`. Expected OrderStatus.
 2026-10-01 15:40:33 [info]: ::ffff:127.0.0.1 - - [01/Oct/2026:15:40:33 +0000] "GET /api/public/pharmacies/3/products?page=1&pageSize=12&sortBy=name HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:156.0) Gecko/20100101 Firefox/156.0"
 2026-10-01 15:40:54 [info]: ::ffff:127.0.0.1 - - [01/Oct/2026:15:40:54 +0000] "GET /api/public/pharmacies HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:156.0) Gecko/20100101 Firefox/156.0"
 2026-10-01 15:41:22 [info]: ::ffff:127.0.0.1 - - [01/Oct/2026:15:41:22 +0000] "GET /api/public/pharmacies HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:156.0) Gecko/20100101 Firefox/156.0"
+2026-10-05 10:32:36 [info]: ✅ Database connected
+2026-10-05 10:32:36 [info]: 🚀 PharmaPulse API → http://localhost:3001
+2026-10-05 10:32:36 [info]: 🔐 SuperAdmin panel → http://localhost:3001/api/super
+2026-10-05 10:32:36 [info]: 📋 Environment: development
+2026-10-05 10:33:47 [info]: ::ffff:127.0.0.1 - - [05/Oct/2026:10:33:47 +0000] "GET /api/public/pharmacies HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-05 10:34:01 [info]: ::ffff:127.0.0.1 - - [05/Oct/2026:10:34:01 +0000] "GET /api/public/pharmacies/1 HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-05 10:34:01 [info]: ::ffff:127.0.0.1 - - [05/Oct/2026:10:34:01 +0000] "GET /api/public/pharmacies/1/products?page=1&pageSize=12&sortBy=name HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-05 10:52:09 [info]: ::ffff:127.0.0.1 - - [05/Oct/2026:10:52:09 +0000] "GET /api/public/pharmacies/1 HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-05 10:52:09 [info]: ::ffff:127.0.0.1 - - [05/Oct/2026:10:52:09 +0000] "GET /api/public/pharmacies/1/products?page=1&pageSize=12&sortBy=name HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-05 10:54:50 [info]: ::ffff:127.0.0.1 - - [05/Oct/2026:10:54:50 +0000] "GET /api/public/pharmacies/1 HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-05 10:54:50 [info]: ::ffff:127.0.0.1 - - [05/Oct/2026:10:54:50 +0000] "GET /api/public/pharmacies/1/products?page=1&pageSize=12&sortBy=name HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"

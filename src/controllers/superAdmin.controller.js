@@ -11,6 +11,21 @@ export async function login(req, res, next) {
   } catch (err) { next(err) }
 }
 
+export async function forgotPassword(req, res, next) {
+  try {
+    await svc.requestSuperAdminPasswordReset(req.body.email, req)
+    return successResponse(res, { message: 'Si un compte existe pour cet email, un lien de réinitialisation a été envoyé.' })
+  } catch (err) { next(err) }
+}
+
+export async function resetPassword(req, res, next) {
+  try {
+    const { token, newPassword } = req.body
+    await svc.resetSuperAdminPassword(token, newPassword, req)
+    return successResponse(res, { message: 'Mot de passe réinitialisé, vous pouvez vous connecter.' })
+  } catch (err) { next(err) }
+}
+
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
 export async function platformStats(req, res, next) {

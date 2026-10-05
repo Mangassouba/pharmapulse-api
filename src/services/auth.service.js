@@ -2,7 +2,8 @@ import bcrypt from 'bcryptjs'
 import { eq, and, isNull } from 'drizzle-orm'
 import db from '../config/database.js'
 import { pharmacy as pharmacyTable, users, category, subscriptions } from '../db/schema.js'
-import { signToken, signRefreshToken } from '../config/jwt.js'
+import { signToken, signRefreshToken, signResetToken, decodeResetToken, verifyResetToken } from '../config/jwt.js'
+import { sendMail, passwordResetEmail } from '../config/mailer.js'
 import { createAuditLog } from '../utils/audit.js'
 import { TRIAL_DAYS, DEFAULT_PLAN, CURRENCY } from '../utils/subscription.js'
 
@@ -154,6 +155,59 @@ export async function changePassword(userId, currentPassword, newPassword, req) 
     entity: 'users',
     entity_id: userId,
     userId,
+    pharmacyId: user.pharmacyId,
+    req,
+  })
+}
+
+const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '')
+
+export async function requestPasswordReset(email, req) {
+  // An email can exist in several pharmacies: send one link per active account.
+  const accounts = await db.query.users.findMany({
+    where: and(eq(users.email, email), isNull(users.deletedAt), eq(users.status, 'ACTIVE')),
+    with: { pharmacy: { columns: { name: true } } },
+  })
+
+  for (const user of accounts) {
+    const link = `${FRONTEND_URL}/reset-password?token=${signResetToken(user.id, user.password)}`
+    try {
+      await sendMail({ to: user.email, ...passwordResetEmail({ name: user.name, account: user.pharmacy.name, link }) })
+    } catch {
+      // Already logged by sendMail; the response stays generic to avoid revealing accounts.
+      continue
+    }
+
+    await createAuditLog({
+      action: 'REQUEST_PASSWORD_RESET',
+      entity: 'users',
+      entity_id: user.id,
+      userId: user.id,
+      pharmacyId: user.pharmacyId,
+      req,
+    })
+  }
+}
+
+export async function resetPassword(token, newPassword, req) {
+  const invalid = { statusCode: 400, message: req.t('auth.reset_token_invalid') }
+
+  const payload = decodeResetToken(token)
+  if (payload?.purpose !== 'reset' || !payload.id) throw invalid
+
+  const user = await db.query.users.findFirst({ where: and(eq(users.id, payload.id), isNull(users.deletedAt)) })
+  if (!user || user.status !== 'ACTIVE') throw invalid
+
+  try { verifyResetToken(token, user.password) } catch { throw invalid }
+
+  const hashed = await bcrypt.hash(newPassword, 12)
+  await db.update(users).set({ password: hashed }).where(eq(users.id, user.id))
+
+  await createAuditLog({
+    action: 'RESET_PASSWORD',
+    entity: 'users',
+    entity_id: user.id,
+    userId: user.id,
     pharmacyId: user.pharmacyId,
     req,
   })

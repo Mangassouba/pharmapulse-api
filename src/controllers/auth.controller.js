@@ -42,6 +42,21 @@ export async function changePassword(req, res, next) {
   } catch (err) { next(err) }
 }
 
+export async function forgotPassword(req, res, next) {
+  try {
+    await authService.requestPasswordReset(req.body.email, req)
+    return successResponse(res, { message: req.t('auth.reset_link_sent') })
+  } catch (err) { next(err) }
+}
+
+export async function resetPassword(req, res, next) {
+  try {
+    const { token, newPassword } = req.body
+    await authService.resetPassword(token, newPassword, req)
+    return successResponse(res, { message: req.t('auth.reset_success') })
+  } catch (err) { next(err) }
+}
+
 export async function updateDuty(req, res, next) {
   try {
     const data = await authService.updateDuty(req.user.pharmacyId, req.body, req)

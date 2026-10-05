@@ -6,7 +6,8 @@ import {
   category, subscriptions, subscriptionPayments, notifications,
 } from '../db/schema.js'
 import { contains, withCounts } from '../db/helpers.js'
-import { signToken } from '../config/jwt.js'
+import { signToken, signResetToken, decodeResetToken, verifyResetToken } from '../config/jwt.js'
+import { sendMail, passwordResetEmail } from '../config/mailer.js'
 import { getPaginationParams } from '../utils/response.js'
 import { subscriptionAmount, DEFAULT_PLAN, CURRENCY, MONTHLY_PRICE, TRIAL_DAYS } from '../utils/subscription.js'
 
@@ -25,6 +26,39 @@ export async function superAdminLogin(email, password, req) {
   const token = signToken({ id: admin.id, role: 'SUPER_ADMIN', email: admin.email, isSuperAdmin: true })
   const { password: _, ...safe } = admin
   return { admin: safe, token }
+}
+
+const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '')
+const SUPER_RESET_PURPOSE = 'super_reset'
+
+export async function requestSuperAdminPasswordReset(email, req) {
+  const admin = await db.query.superAdmins.findFirst({ where: eq(superAdmins.email, email) })
+  if (!admin || !admin.is_active) return
+
+  const link = `${FRONTEND_URL}/super/reset-password?token=${signResetToken(admin.id, admin.password, SUPER_RESET_PURPOSE)}`
+  try {
+    await sendMail({ to: admin.email, ...passwordResetEmail({ name: admin.name, account: 'Super Administrateur', link, color: '#7c3aed' }) })
+  } catch {
+    // Already logged by sendMail; the response stays generic to avoid revealing accounts.
+    return
+  }
+  await logAction(admin.id, 'REQUEST_PASSWORD_RESET', 'Demande de réinitialisation du mot de passe', null, null, req)
+}
+
+export async function resetSuperAdminPassword(token, newPassword, req) {
+  const invalid = { statusCode: 400, message: 'Lien de réinitialisation invalide ou expiré.' }
+
+  const payload = decodeResetToken(token)
+  if (payload?.purpose !== SUPER_RESET_PURPOSE || !payload.id) throw invalid
+
+  const admin = await db.query.superAdmins.findFirst({ where: eq(superAdmins.id, payload.id) })
+  if (!admin || !admin.is_active) throw invalid
+
+  try { verifyResetToken(token, admin.password) } catch { throw invalid }
+
+  const hashed = await bcrypt.hash(newPassword, 12)
+  await db.update(superAdmins).set({ password: hashed }).where(eq(superAdmins.id, admin.id))
+  await logAction(admin.id, 'RESET_PASSWORD', 'Mot de passe réinitialisé', null, null, req)
 }
 
 // ── Platform stats ────────────────────────────────────────────────────────────

@@ -15,6 +15,15 @@ export const loginValidator = [
   body('password').notEmpty().withMessage('Password required'),
 ]
 
+export const forgotPasswordValidator = [
+  body('email').isEmail().withMessage('Invalid email').normalizeEmail(),
+]
+
+export const resetPasswordValidator = [
+  body('token').notEmpty().withMessage('Token required'),
+  body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters'),
+]
+
 export const updateMeValidator = [
   body('name').trim().notEmpty().withMessage('Name required').isLength({ min: 2, max: 100 }),
   body('phone').optional({ checkFalsy: true }).trim().isLength({ max: 30 }),
