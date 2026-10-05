@@ -8,6 +8,7 @@ import rateLimit from 'express-rate-limit'
 import { middleware as i18nMiddleware, i18next } from './i18n/index.js'
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js'
 import { authenticate, requireActivePharmacy } from './middlewares/auth.js'
+import { verifyToken } from './config/jwt.js'
 import logger from './config/logger.js'
 import { pool } from './config/database.js'
 import { startTrialReminderJob } from './jobs/trialReminders.js'
@@ -49,9 +50,24 @@ app.use(cors({
 }))
 
 // ── Rate limiting ─────────────────────────────────────────────────────────────
+// Logged-in users are limited per account, not per IP: the staff of a pharmacy share
+// one public IP and would otherwise share one quota. Only a valid (verified) token
+// counts; anonymous visitors and invalid tokens fall back to the IP.
+function rateLimitKey(req) {
+  const [scheme, token] = (req.get('authorization') || '').split(' ')
+  if (scheme === 'Bearer' && token) {
+    try {
+      const { id, isSuperAdmin } = verifyToken(token)
+      if (id) return `${isSuperAdmin ? 'super' : 'user'}:${id}`
+    } catch { /* invalid or expired: treat as anonymous */ }
+  }
+  return `ip:${req.ip}`
+}
+
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
   max:      parseInt(process.env.RATE_LIMIT_MAX)        || 300,
+  keyGenerator: rateLimitKey,
   standardHeaders: true, legacyHeaders: false,
 })
 app.use('/api', limiter)

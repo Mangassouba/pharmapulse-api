@@ -1,0 +1,68 @@
+# Render Blueprint — PharmaPulse API
+# Front: Vercel · Database: Supabase (not managed here)
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: pharmapulse-api
+    runtime: node
+    # Must match the Supabase project region (eu-central-1 = Frankfurt), otherwise every query pays a transatlantic round trip
+    region: frankfurt
+    plan: 0.5c-512mb # Starter: always on (the free plan sleeps and stops the hourly trial reminders)
+    # A single instance: the trial-reminder job runs in-process and would send duplicates otherwise
+    numInstances: 1
+    # --include=dev: drizzle-kit (devDependency) is needed by the migration step, and NODE_ENV=production would skip it
+    buildCommand: npm ci --include=dev
+    preDeployCommand: npm run db:migrate
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "24"
+
+      # ── Database (Supabase: Connect → "Session pooler" URL, port 5432, without ?sslmode) ──
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_SSL
+        value: "true"
+
+      # ── Security ──
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 30d
+      - key: TRUST_PROXY
+        value: "1"
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "900000"
+      - key: RATE_LIMIT_MAX
+        value: "300"
+
+      # ── Front (Vercel URL, e.g. https://pharmapulse.vercel.app) ──
+      - key: FRONTEND_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+
+      # ── Mail ──
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_SECURE
+        value: "false"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+
+      - key: LOG_LEVEL
+        value: info

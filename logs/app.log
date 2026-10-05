@@ -1534,3 +1534,25 @@ Invalid value for argument `status`. Expected OrderStatus.
 2026-10-05 12:02:33 [info]: 🔐 SuperAdmin panel → http://localhost:3099/api/super
 2026-10-05 12:02:33 [info]: 📋 Environment: test
 2026-10-05 12:02:35 [error]: Le fichier n'est pas une image valide.
+2026-10-05 12:40:17 [info]: ✅ Database connected
+2026-10-05 12:40:17 [info]: 🚀 PharmaPulse API → http://localhost:3001
+2026-10-05 12:40:17 [info]: 🔐 SuperAdmin panel → http://localhost:3001/api/super
+2026-10-05 12:40:17 [info]: 📋 Environment: development
+2026-10-05 12:40:17 [info]: ::ffff:127.0.0.1 - - [05/Oct/2026:12:40:17 +0000] "GET /api/public/site HTTP/1.1" 200 91 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-05 12:40:17 [info]: ::ffff:127.0.0.1 - - [05/Oct/2026:12:40:17 +0000] "GET /api/public/pharmacies/1 HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-05 12:40:17 [info]: ::ffff:127.0.0.1 - - [05/Oct/2026:12:40:17 +0000] "GET /api/public/pharmacies/1/products?page=1&pageSize=12&sortBy=name HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-05 12:40:22 [info]: ::ffff:127.0.0.1 - - [05/Oct/2026:12:40:22 +0000] "GET /api/public/pharmacies HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-05 12:40:54 [info]: ::ffff:127.0.0.1 - - [05/Oct/2026:12:40:54 +0000] "POST /api/super/auth/login HTTP/1.1" 200 532 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-05 12:40:56 [info]: ::ffff:127.0.0.1 - - [05/Oct/2026:12:40:56 +0000] "GET /api/super/stats HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-05 12:42:04 [info]: ::ffff:127.0.0.1 - - [05/Oct/2026:12:42:04 +0000] "PUT /api/super/site HTTP/1.1" 200 80 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-05 12:42:31 [info]: ::ffff:127.0.0.1 - - [05/Oct/2026:12:42:31 +0000] "GET /api/public/site HTTP/1.1" 200 89 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-05 12:42:31 [info]: ::ffff:127.0.0.1 - - [05/Oct/2026:12:42:31 +0000] "GET /api/public/pharmacies HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-05 12:44:13 [info]: ::ffff:127.0.0.1 - - [05/Oct/2026:12:44:13 +0000] "GET /api/public/pharmacies HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-05 13:52:29 [info]: ✅ Database connected
+2026-10-05 13:52:29 [info]: 🚀 PharmaPulse API → http://localhost:3099
+2026-10-05 13:52:29 [info]: 🔐 SuperAdmin panel → http://localhost:3099/api/super
+2026-10-05 13:52:29 [info]: 📋 Environment: test
+2026-10-05 13:52:47 [info]: ✅ Database connected
+2026-10-05 13:52:47 [info]: 🚀 PharmaPulse API → http://localhost:3099
+2026-10-05 13:52:47 [info]: 🔐 SuperAdmin panel → http://localhost:3099/api/super
+2026-10-05 13:52:47 [info]: 📋 Environment: test
