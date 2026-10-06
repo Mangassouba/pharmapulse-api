@@ -1,4 +1,5 @@
 import * as svc from '../services/superAdmin.service.js'
+import * as notif from '../services/superNotification.service.js'
 import { successResponse, paginatedResponse } from '../utils/response.js'
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -23,6 +24,29 @@ export async function resetPassword(req, res, next) {
     const { token, newPassword } = req.body
     await svc.resetSuperAdminPassword(token, newPassword, req)
     return successResponse(res, { message: 'Mot de passe réinitialisé, vous pouvez vous connecter.' })
+  } catch (err) { next(err) }
+}
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+
+export async function listNotifications(req, res, next) {
+  try {
+    const data = await notif.listSuperNotifications({ limit: req.query.limit })
+    return successResponse(res, { data })
+  } catch (err) { next(err) }
+}
+
+export async function markNotificationRead(req, res, next) {
+  try {
+    await notif.markSuperNotificationRead(parseInt(req.params.id))
+    return successResponse(res, { message: 'Notification lue' })
+  } catch (err) { next(err) }
+}
+
+export async function markAllNotificationsRead(req, res, next) {
+  try {
+    await notif.markAllSuperNotificationsRead()
+    return successResponse(res, { message: 'Toutes les notifications sont lues' })
   } catch (err) { next(err) }
 }
 

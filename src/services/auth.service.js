@@ -6,6 +6,7 @@ import { signToken, signRefreshToken, signResetToken, decodeResetToken, verifyRe
 import { sendMail, passwordResetEmail, newRegistrationEmail, welcomeEmail } from '../config/mailer.js'
 import { createAuditLog } from '../utils/audit.js'
 import { parseImageDataUrl } from '../utils/image.js'
+import { notifySuperAdmins } from './superNotification.service.js'
 import { TRIAL_DAYS, DEFAULT_PLAN, CURRENCY } from '../utils/subscription.js'
 
 const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '')
@@ -168,6 +169,15 @@ export async function changePassword(userId, currentPassword, newPassword, req) 
 }
 
 async function notifySuperAdminsOfRegistration(pharmacy, admin) {
+  // In-app first: it must exist even if the email fails
+  await notifySuperAdmins({
+    title:   `🆕 Nouvelle inscription : ${pharmacy.name}`,
+    message: `${admin.name} (${admin.email})${pharmacy.city ? ` · ${pharmacy.city}` : ''} — essai gratuit démarré.`,
+    type:    'SUCCESS',
+    link:    '/super/pharmacies',
+    pharmacyId: pharmacy.id,
+  })
+
   const recipients = await db.query.superAdmins.findMany({
     where: eq(superAdmins.is_active, true),
     columns: { email: true },

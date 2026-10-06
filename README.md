@@ -169,6 +169,14 @@ Les rôles d'une pharmacie sont `ADMIN`, `MANAGER`, `CAISSIER` et `STOCK_MANAGER
 
 Les modèles sont dans `src/config/mailer.js`. Un email qui échoue ne bloque jamais l'action en cours.
 
+### Notifications du Super Admin
+
+La cloche du panel Super Admin affiche :
+- chaque **nouvelle inscription** de pharmacie ;
+- chaque **fin d'essai proche** (7 jours avant, puis la veille), pour relancer la pharmacie à temps.
+
+Les notifications sont communes à tous les Super Admins (table `super_admin_notifications`) et la liste se rafraîchit toutes les minutes. Un clic ouvre la liste des pharmacies et marque la notification comme lue.
+
 ### Tâche planifiée
 
 Les rappels de fin d'essai (`src/jobs/trialReminders.js`) sont vérifiés **au démarrage puis toutes les heures**, à l'intérieur de l'API. Chaque rappel n'est envoyé qu'une fois : il est noté dans le journal d'audit.

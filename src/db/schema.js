@@ -493,6 +493,22 @@ export const notifications = pgTable('notifications', {
   fk('notifications', t.pharmacyId, pharmacy.id, 'set null'),
 ])
 
+// Platform notifications for the SuperAdmin panel (shared by all super admins)
+export const superAdminNotifications = pgTable('super_admin_notifications', {
+  id:         serial('id').primaryKey(),
+  title:      text('title').notNull(),
+  message:    text('message').notNull(),
+  type:       text('type').notNull().default('INFO'), // INFO | SUCCESS | WARNING | ERROR
+  link:       text('link'),                           // front route opened on click, e.g. /super/pharmacies
+  is_read:    boolean('is_read').notNull().default(false),
+  createdAt:  createdAt(),
+  pharmacyId: integer('pharmacyId'),
+}, (t) => [
+  index('super_admin_notifications_is_read_idx').on(t.is_read),
+  index('super_admin_notifications_createdAt_idx').on(t.createdAt),
+  fk('super_admin_notifications', t.pharmacyId, pharmacy.id, 'cascade'),
+])
+
 export const settings = pgTable('settings', {
   id:          serial('id').primaryKey(),
   key:         text('key').notNull(),

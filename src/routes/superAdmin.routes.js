@@ -24,6 +24,17 @@ router.get('/stats', ctrl.platformStats)
  */
 router.get('/logs', ctrl.getLogs)
 
+// ── Notifications ─────────────────────────────────────────────────────────────
+
+/**
+ * GET   /api/super/notifications          — latest notifications + unread count (?limit=20)
+ * PATCH /api/super/notifications/read-all — mark everything as read
+ * PATCH /api/super/notifications/:id/read — mark one as read
+ */
+router.get('/notifications', ctrl.listNotifications)
+router.patch('/notifications/read-all', ctrl.markAllNotificationsRead)
+router.patch('/notifications/:id/read', ctrl.markNotificationRead)
+
 // ── Site ──────────────────────────────────────────────────────────────────────
 
 /**

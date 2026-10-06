@@ -1635,3 +1635,53 @@ Invalid value for argument `status`. Expected OrderStatus.
 2026-10-06 11:25:22 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:25:22 +0000] "GET /api/super/stats HTTP/1.1" 200 766 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
 2026-10-06 11:25:29 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:25:29 +0000] "GET /api/super/pharmacies?page=1&pageSize=20 HTTP/1.1" 200 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
 2026-10-06 11:26:43 [info]: Mail envoyé à hamallahmanga@gmail.com (<3d227219-057c-04c4-6aae-acd3ae3f6086@gmail.com>)
+2026-10-06 11:51:53 [info]: ✅ Database connected
+2026-10-06 11:51:53 [info]: 🚀 PharmaPulse API → http://localhost:3001
+2026-10-06 11:51:53 [info]: 🔐 SuperAdmin panel → http://localhost:3001/api/super
+2026-10-06 11:51:53 [info]: 📋 Environment: development
+2026-10-06 11:52:12 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:52:12 +0000] "GET /api/public/site HTTP/1.1" 200 69 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:52:45 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:52:45 +0000] "POST /api/super/auth/login HTTP/1.1" 200 503 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:52:47 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:52:47 +0000] "GET /api/super/stats HTTP/1.1" 200 357 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:52:56 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:52:56 +0000] "GET /api/super/pharmacies?page=1&pageSize=20 HTTP/1.1" 200 823 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:53:13 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:53:13 +0000] "GET /api/super/users?page=1&pageSize=20 HTTP/1.1" 200 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:53:18 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:53:18 +0000] "GET /api/super/logs?page=1&pageSize=25 HTTP/1.1" 200 420 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:54:29 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:54:29 +0000] "POST /api/auth/register HTTP/1.1" 201 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:54:32 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:54:32 +0000] "GET /api/dashboard HTTP/1.1" 403 87 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:54:32 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:54:32 +0000] "GET /api/dashboard HTTP/1.1" 403 87 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:54:32 [info]: Mail envoyé à hamallahmanga@gmail.com (<deac2630-01d1-5cff-dc1e-beaaca1faf68@gmail.com>)
+2026-10-06 11:54:32 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:54:32 +0000] "GET /api/notifications HTTP/1.1" 403 87 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:54:32 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:54:32 +0000] "GET /api/orders?source=ONLINE&status=PENDING&pageSize=1 HTTP/1.1" 403 87 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:54:32 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:54:32 +0000] "GET /api/notifications/unread-count HTTP/1.1" 403 87 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:54:33 [info]: Mail envoyé à dia@gmail.com (<ff71f9ca-636f-5180-7fd9-8e99b6243742@gmail.com>)
+2026-10-06 11:57:17 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:57:17 +0000] "POST /api/auth/register HTTP/1.1" 201 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:57:17 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:57:17 +0000] "GET /api/dashboard HTTP/1.1" 403 87 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:57:17 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:57:17 +0000] "GET /api/dashboard HTTP/1.1" 403 87 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:57:17 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:57:17 +0000] "GET /api/orders?source=ONLINE&status=PENDING&pageSize=1 HTTP/1.1" 403 87 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:57:17 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:57:17 +0000] "GET /api/notifications HTTP/1.1" 403 87 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:57:17 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:57:17 +0000] "GET /api/notifications/unread-count HTTP/1.1" 403 87 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:57:19 [info]: Mail envoyé à hamallahmanga39@gmail.com (<243dad05-e768-aa77-dc5d-f174e5c588d6@gmail.com>)
+2026-10-06 11:57:19 [info]: Mail envoyé à hamallahmanga@gmail.com (<43380b84-5648-a592-dcd6-b96ad22cb74e@gmail.com>)
+2026-10-06 11:58:48 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:58:48 +0000] "GET /api/public/site HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:58:48 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:58:48 +0000] "GET /api/dashboard HTTP/1.1" 403 87 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:58:48 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:58:48 +0000] "GET /api/dashboard HTTP/1.1" 403 87 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:58:48 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:58:48 +0000] "GET /api/notifications HTTP/1.1" 403 87 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:58:48 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:58:48 +0000] "GET /api/notifications/unread-count HTTP/1.1" 403 87 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:58:48 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:58:48 +0000] "GET /api/orders?source=ONLINE&status=PENDING&pageSize=1 HTTP/1.1" 403 87 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:58:59 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:58:59 +0000] "POST /api/super/auth/login HTTP/1.1" 200 525 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:59:02 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:59:02 +0000] "GET /api/super/stats HTTP/1.1" 200 565 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:59:11 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:59:11 +0000] "GET /api/super/pharmacies?page=1&pageSize=20 HTTP/1.1" 200 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:59:20 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:59:20 +0000] "GET /api/super/pharmacies/3 HTTP/1.1" 200 986 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:59:28 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:59:28 +0000] "PATCH /api/super/pharmacies/3/status HTTP/1.1" 200 60 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:59:29 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:59:29 +0000] "GET /api/super/stats HTTP/1.1" 200 564 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:59:29 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:59:29 +0000] "GET /api/super/pharmacies?page=1&pageSize=20 HTTP/1.1" 200 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 12:01:32 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:12:01:32 +0000] "GET /api/super/users?page=1&pageSize=20 HTTP/1.1" 200 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 12:01:34 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:12:01:34 +0000] "GET /api/super/logs?page=1&pageSize=25 HTTP/1.1" 200 1000 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 12:06:39 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:12:06:39 +0000] "GET /api/public/site HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 12:12:35 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:12:12:35 +0000] "GET /api/public/site HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 12:12:36 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:12:12:36 +0000] "GET /api/public/site HTTP/1.1" 200 69 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 12:14:00 [info]: ✅ Database connected
+2026-10-06 12:14:00 [info]: 🚀 PharmaPulse API → http://localhost:3099
+2026-10-06 12:14:00 [info]: 🔐 SuperAdmin panel → http://localhost:3099/api/super
+2026-10-06 12:14:00 [info]: 📋 Environment: test
+2026-10-06 12:14:01 [error]: Échec de l'envoi du mail à test-notif@example.invalid: getaddrinfo ENOTFOUND smtp.disabled.invalid
+2026-10-06 12:14:01 [error]: Échec de l'envoi du mail à hamallahmanga@gmail.com: getaddrinfo ENOTFOUND smtp.disabled.invalid

@@ -3,6 +3,7 @@ import db from '../config/database.js'
 import { subscriptions, users, auditLogs, notifications } from '../db/schema.js'
 import { sendMail, trialExpiringEmail } from '../config/mailer.js'
 import { createAuditLog } from '../utils/audit.js'
+import { notifySuperAdmins } from '../services/superNotification.service.js'
 import { TRIAL_REMINDER_DAYS } from '../utils/subscription.js'
 import logger from '../config/logger.js'
 
@@ -67,6 +68,15 @@ export async function runTrialReminders() {
         ? 'Votre essai gratuit se termine demain. Contactez-nous pour activer votre abonnement.'
         : `Votre essai gratuit se termine dans ${daysLeft} jours. Contactez-nous pour activer votre abonnement.`,
       type:    'INFO',
+    })
+
+    // Heads-up for the SuperAdmin, to follow up with the pharmacy before the trial ends
+    await notifySuperAdmins({
+      title:   `⏳ Fin d'essai ${daysLeft <= 1 ? 'demain' : `dans ${daysLeft} jours`} : ${sub.pharmacy.name}`,
+      message: `L'essai gratuit se termine le ${new Date(sub.end_date).toLocaleDateString('fr-FR')}. La pharmacie a été prévenue par email.`,
+      type:    'WARNING',
+      link:    '/super/pharmacies',
+      pharmacyId: sub.pharmacyId,
     })
 
     await createAuditLog({
