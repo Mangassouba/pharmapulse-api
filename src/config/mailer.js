@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer'
 import logger from './logger.js'
 import { getSiteName } from '../services/site.service.js'
+import { PAYMENT_NUMBER, PAYMENT_METHODS, MONTHLY_PRICE, CURRENCY } from '../utils/subscription.js'
 
 const SMTP_HOST   = process.env.SMTP_HOST
 const SMTP_PORT   = Number(process.env.SMTP_PORT) || 587
@@ -77,13 +78,22 @@ export async function welcomeEmail({ pharmacy, admin, trialEnd, link }) {
   const siteHtml = escapeHtml(site)
   const trialEndLabel = trialEnd ? new Date(trialEnd).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : null
   const trialLine = trialEndLabel ? `Votre période d'essai gratuite est active jusqu'au ${trialEndLabel}.` : ''
+  const methods   = PAYMENT_METHODS.join(' / ')
+  const price     = `${MONTHLY_PRICE.toLocaleString('fr-FR')} ${CURRENCY}`
 
   return {
     subject: `Bienvenue sur ${site}, ${pharmacy.name} !`,
-    text: `Bonjour ${admin.name},\n\nBienvenue sur ${site} ! Le compte de votre pharmacie « ${pharmacy.name} » est prêt.\n${trialLine}\n\nVous pouvez dès maintenant :\n- ajouter vos produits et lots\n- enregistrer vos ventes et réceptions\n- inviter votre équipe\n\nConnexion : ${link}\nIdentifiant : ${admin.email}\n\nL'équipe ${site}`,
+    text: `Bonjour ${admin.name},\n\nBienvenue sur ${site} ! Le compte de votre pharmacie « ${pharmacy.name} » est prêt.\n${trialLine}\n\nPAIEMENT DE L'ABONNEMENT\nVeuillez payer l'abonnement au numéro ${PAYMENT_NUMBER} sur ${methods}.\nMontant : ${price} / mois.\nAprès réception du paiement, votre abonnement sera activé par notre équipe.\n\nVous pouvez dès maintenant :\n- ajouter vos produits et lots\n- enregistrer vos ventes et réceptions\n- inviter votre équipe\n\nConnexion : ${link}\nIdentifiant : ${admin.email}\n\nL'équipe ${site}`,
     html: `<p>Bonjour ${escapeHtml(admin.name)},</p>
 <p>Bienvenue sur <strong>${siteHtml}</strong> ! Le compte de votre pharmacie <strong>${escapeHtml(pharmacy.name)}</strong> est prêt.</p>
 ${trialLine ? `<p style="padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;color:#166534;">${escapeHtml(trialLine)}</p>` : ''}
+<div style="margin:16px 0;padding:16px;border:1px solid #e5e7eb;border-radius:10px;text-align:center;">
+  <p style="margin:0 0 6px;font-weight:700;">Paiement de l'abonnement</p>
+  <p style="margin:0 0 8px;">Veuillez payer l'abonnement au numéro :</p>
+  <p style="margin:0 0 8px;font-family:monospace;font-size:24px;font-weight:800;letter-spacing:2px;color:#16a34a;">${PAYMENT_NUMBER}</p>
+  <p style="margin:0 0 8px;">sur <strong>${escapeHtml(methods)}</strong> — Montant : <strong>${price} / mois</strong></p>
+  <p style="margin:0;color:#6b7280;font-size:13px;">Après réception du paiement, votre abonnement sera activé par notre équipe.</p>
+</div>
 <p>Vous pouvez dès maintenant :</p>
 <ul><li>ajouter vos produits et lots</li><li>enregistrer vos ventes et réceptions</li><li>inviter votre équipe</li></ul>
 <p><a href="${link}" style="display:inline-block;padding:10px 18px;background:#16a34a;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">Accéder à mon espace</a></p>
