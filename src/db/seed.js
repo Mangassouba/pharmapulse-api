@@ -7,6 +7,9 @@ import {
   products, sales, saleDetails, stockMovements, notifications,
 } from './schema.js'
 
+// Real mailbox: registration notifications and password-reset links are sent here
+const SUPER_ADMIN_EMAIL = 'hamallahmanga@gmail.com'
+
 const hash = p => bcrypt.hashSync(p, 12)
 const daysAgo = n => new Date(Date.now() - n * 86400000)
 const daysAhead = n => new Date(Date.now() + n * 86400000)
@@ -62,9 +65,9 @@ async function main() {
   console.log('🌱 Seeding...\n')
 
   // SuperAdmin
-  await upsert(superAdmins, eq(superAdmins.email, 'superadmin@pharmapulse.com'),
-    { name:'Platform Admin', email:'superadmin@pharmapulse.com', password:hash('SuperAdmin2024!'), is_active:true })
-  console.log('✅ SuperAdmin: superadmin@pharmapulse.com / SuperAdmin2024!')
+  await upsert(superAdmins, eq(superAdmins.email, SUPER_ADMIN_EMAIL),
+    { name:'Platform Admin', email:SUPER_ADMIN_EMAIL, password:hash('SuperAdmin2024!'), is_active:true })
+  console.log(`✅ SuperAdmin: ${SUPER_ADMIN_EMAIL} / SuperAdmin2024!`)
 
   // Categories
   const catNames = ['Analgésique','Antibiotique','Anti-inflammatoire','Antihypertenseur','Antidiabétique','Antihistaminique','Gastro-entérologie','Pédiatrie','Complément alimentaire','Dermatologie']
@@ -89,49 +92,11 @@ async function main() {
     { pharmacyId:ph1.id, plan:'STARTER', status:'ACTIVE', start_date:daysAgo(30), end_date:daysAhead(330), amount:18000, currency:'MRU' })
   await upsertPayment({ subscriptionId:sub1.id, amount:18000, method:'CASH', reference:'PAY-MR-0001', period_start:daysAgo(30), period_end:daysAhead(330), notes:'Souscription 12 mois × 1500 MRU' })
 
-  // ── Pharmacie 2 — Nouakchott (Ksar) — ACTIVE 5 mois, garde le dimanche 24h/24 ──
-  const ph2 = await upsert(pharmacy, eq(pharmacy.license_number, 'MR-NKC-2024-002'), {
-    name:'Pharmacie El Emel', address:'Route de l\'Aéroport, Ksar', city:'Nouakchott', country:'Mauritanie',
-    email:'contact@pharmacieelemel.mr', phone:'+222 45 29 33 40', latitude:18.0990, longitude:-15.9510,
-    license_number:'MR-NKC-2024-002', status:'ACTIVE', is_active:true, max_users:5,
-    duty_days:[0],
-  })
-  const u2a = await upsertUser(ph2.id, 'admin@pharmacieelemel.mr', {name:'Dr. Ahmedou Ould Abdallahi',password:hash('Admin1234!'),role:'ADMIN',status:'ACTIVE'})
-  await upsertUser(ph2.id, 'caissier@pharmacieelemel.mr', {name:'Fatimetou Mint Mohamed',password:hash('Caissier1234!'),role:'CAISSIER',status:'ACTIVE'})
-  const sub2 = await upsert(subscriptions, eq(subscriptions.pharmacyId, ph2.id),
-    { pharmacyId:ph2.id, plan:'STARTER', status:'ACTIVE', start_date:daysAgo(60), end_date:daysAhead(90), amount:7500, currency:'MRU' })
-  await upsertPayment({ subscriptionId:sub2.id, amount:7500, method:'MOBILE_MONEY', reference:'BANKILY-MR-0002', period_start:daysAgo(60), period_end:daysAhead(90), notes:'Souscription 5 mois × 1500 MRU' })
-
-  // ── Pharmacie 3 — Nouadhibou — ESSAI 30 jours, garde mar + jeu de nuit ──
-  const ph3 = await upsert(pharmacy, eq(pharmacy.license_number, 'MR-NDB-2024-003'), {
-    name:'Pharmacie Ennour', address:'Boulevard Maritime, Centre-ville', city:'Nouadhibou', country:'Mauritanie',
-    email:'contact@pharmacieennour.mr', phone:'+222 45 74 21 55', latitude:20.9310, longitude:-17.0347,
-    license_number:'MR-NDB-2024-003', status:'ACTIVE', is_active:true, max_users:5,
-    duty_days:[2,4], duty_start:'21:00', duty_end:'07:00',
-  })
-  const u3a = await upsertUser(ph3.id, 'admin@pharmacieennour.mr', {name:'Dr. Khadijetou Mint Vall',password:hash('Admin1234!'),role:'ADMIN',status:'ACTIVE'})
-  await upsert(subscriptions, eq(subscriptions.pharmacyId, ph3.id),
-    { pharmacyId:ph3.id, plan:'STARTER', status:'TRIAL', start_date:daysAgo(10), end_date:daysAhead(20), trial_end_date:daysAhead(20), amount:0, currency:'MRU' })
-
-  // ── Pharmacie 4 — Rosso — SUSPENDUE (abonnement 2 mois expiré) ──
-  const ph4 = await upsert(pharmacy, eq(pharmacy.license_number, 'MR-RSO-2024-004'), {
-    name:'Pharmacie Essalam', address:'Quartier Satara', city:'Rosso', country:'Mauritanie',
-    phone:'+222 45 56 18 02', latitude:16.5138, longitude:-15.8050,
-    license_number:'MR-RSO-2024-004', status:'SUSPENDED', is_active:false,
-    suspended_at:daysAgo(45), suspended_reason:'Abonnement non renouvelé depuis 45 jours', max_users:5,
-  })
-  await upsertUser(ph4.id, 'admin@pharmacieessalam.mr', {name:'Dr. Moussa Sow',password:hash('Admin1234!'),role:'ADMIN',status:'ACTIVE'})
-  const sub4 = await upsert(subscriptions, eq(subscriptions.pharmacyId, ph4.id),
-    { pharmacyId:ph4.id, plan:'STARTER', status:'EXPIRED', start_date:daysAgo(105), end_date:daysAgo(45), amount:3000, currency:'MRU' })
-  await upsertPayment({ subscriptionId:sub4.id, amount:3000, method:'CASH', reference:'PAY-MR-0004', period_start:daysAgo(105), period_end:daysAgo(45), notes:'Souscription 2 mois × 1500 MRU' })
-
-  console.log('✅ 4 pharmacies mauritaniennes + abonnements')
+  console.log('✅ 1 pharmacie + abonnement')
 
   // Produits (un stock par entrée du catalogue ; undefined = produit absent de la pharmacie)
   const prodRows1 = await seedProducts(ph1, u1a.id, cats, [120, 88, 45, 30, 8, 25, 0, 40, 62, 150, 22, 12])
-  const prodRows2 = await seedProducts(ph2, u2a.id, cats, [200, 60, 35, undefined, 50, 18, 40, undefined, 30, 80, 15, undefined])
-  const prodRows3 = await seedProducts(ph3, u3a.id, cats, [90, 40, 25, 10, 30, undefined, 20, 15, 12, 60, undefined, 5])
-  console.log(`✅ ${prodRows1.length + prodRows2.length + prodRows3.length} produits`)
+  console.log(`✅ ${prodRows1.length} produits`)
 
   // 8 ventes pour la pharmacie 1 — premier lancement uniquement (sinon numéros de facture en double et stock décrémenté à nouveau)
   const [alreadySeeded] = await db.select({ id: sales.id }).from(sales).where(eq(sales.pharmacyId, ph1.id)).limit(1)
@@ -155,25 +120,17 @@ async function main() {
   // Notifications (premier lancement uniquement — pas de clé unique pour dédoublonner)
   if (!alreadySeeded) await db.insert(notifications).values([
     {pharmacyId:ph1.id,title:'✅ Bienvenue sur PharmaPulse',message:'Votre espace est prêt.',type:'SUCCESS'},
-    {pharmacyId:ph3.id,title:'🎁 Période d\'essai',message:'Votre essai gratuit se termine dans 20 jours.',type:'INFO'},
-    {pharmacyId:ph4.id,title:'❌ Compte suspendu',message:'Abonnement expiré. Contactez le support.',type:'ERROR'},
   ]).onConflictDoNothing()
 
   console.log('\n'+'═'.repeat(60))
   console.log('🎉 Seed terminé!\n')
   console.log('🔐 SUPER ADMIN:')
-  console.log('   superadmin@pharmapulse.com / SuperAdmin2024!\n')
+  console.log(`   ${SUPER_ADMIN_EMAIL} / SuperAdmin2024!\n`)
   console.log('💊 Pharmacie Chifa — Nouakchott (Active, 12 mois):')
   console.log('   admin@pharmaciechifa.mr / Admin1234!')
   console.log('   manager@pharmaciechifa.mr / Manager1234!')
   console.log('   caissier@pharmaciechifa.mr / Caissier1234!')
-  console.log('   stock@pharmaciechifa.mr / Stock1234!\n')
-  console.log('💊 Pharmacie El Emel — Nouakchott (Active, 5 mois):')
-  console.log('   admin@pharmacieelemel.mr / Admin1234!\n')
-  console.log('🎁 Pharmacie Ennour — Nouadhibou (Essai 30 jours):')
-  console.log('   admin@pharmacieennour.mr / Admin1234!\n')
-  console.log('❌ Pharmacie Essalam — Rosso (SUSPENDUE):')
-  console.log('   admin@pharmacieessalam.mr / Admin1234!')
+  console.log('   stock@pharmaciechifa.mr / Stock1234!')
   console.log('═'.repeat(60))
 }
 

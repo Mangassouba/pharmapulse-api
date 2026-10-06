@@ -109,3 +109,15 @@ Invalid value for argument `status`. Expected OrderStatus.
 2026-10-05 11:34:49 [error]: Le fichier n'est pas une image valide.
 2026-10-05 11:34:49 [error]: Le fichier n'est pas une image valide.
 2026-10-05 12:02:35 [error]: Le fichier n'est pas une image valide.
+2026-10-06 11:04:28 [error]: Échec de l'envoi du mail à superadmin@pharmapulse.com: connect ECONNREFUSED 127.0.0.1:587
+2026-10-06 11:04:28 [error]: Échec de l'envoi du mail à hamallahmanga39@gmail.com: connect ECONNREFUSED 127.0.0.1:587
+2026-10-06 11:08:05 [error]: Échec de l'envoi du mail à superadmin@pharmapulse.com: connect ECONNREFUSED 127.0.0.1:587
+2026-10-06 11:08:05 [error]: Échec de l'envoi du mail à tandia@gmail.com: connect ECONNREFUSED ::1:587
+2026-10-06 11:22:19 [error]: Échec de l'envoi du mail à superadmin@pharmapulse.com: Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to
+535 5.7.8  https://support.google.com/mail/?p=BadCredentials 5b1f17b1804b1-4a17c7b7f00sm18204665e9.13 - gsmtp
+2026-10-06 11:22:19 [error]: Échec de l'envoi du mail à hamahoullah.mangassouba@mdscresoft-group.com: Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to
+535 5.7.8  https://support.google.com/mail/?p=BadCredentials 5b1f17b1804b1-4a17bfeb65bsm17894695e9.5 - gsmtp
+2026-10-06 11:24:30 [error]: Échec de l'envoi du mail à superadmin@pharmapulse.com: Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to
+535 5.7.8  https://support.google.com/mail/?p=BadCredentials ffacd0b85a97d-48c6cd7c326sm2619930f8f.53 - gsmtp
+2026-10-06 11:24:30 [error]: Échec de l'envoi du mail à saha@gmail.com: Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to
+535 5.7.8  https://support.google.com/mail/?p=BadCredentials ffacd0b85a97d-48c6773663dsm5865211f8f.4 - gsmtp

@@ -1556,3 +1556,82 @@ Invalid value for argument `status`. Expected OrderStatus.
 2026-10-05 13:52:47 [info]: 🚀 PharmaPulse API → http://localhost:3099
 2026-10-05 13:52:47 [info]: 🔐 SuperAdmin panel → http://localhost:3099/api/super
 2026-10-05 13:52:47 [info]: 📋 Environment: test
+2026-10-05 18:00:14 [info]: ::ffff:127.0.0.1 - - [05/Oct/2026:18:00:14 +0000] "GET /api/public/site HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-05 18:00:14 [info]: ::ffff:127.0.0.1 - - [05/Oct/2026:18:00:14 +0000] "GET /api/public/pharmacies HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:00:48 [info]: ✅ Database connected
+2026-10-06 11:00:48 [info]: 🚀 PharmaPulse API → http://localhost:3001
+2026-10-06 11:00:48 [info]: 🔐 SuperAdmin panel → http://localhost:3001/api/super
+2026-10-06 11:00:48 [info]: 📋 Environment: development
+2026-10-06 11:01:32 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:01:32 +0000] "GET /api/public/site HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:01:33 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:01:33 +0000] "GET /api/public/pharmacies HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:04:27 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:04:27 +0000] "POST /api/auth/register HTTP/1.1" 201 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:04:28 [error]: Échec de l'envoi du mail à superadmin@pharmapulse.com: connect ECONNREFUSED 127.0.0.1:587
+2026-10-06 11:04:28 [error]: Échec de l'envoi du mail à hamallahmanga39@gmail.com: connect ECONNREFUSED 127.0.0.1:587
+2026-10-06 11:04:30 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:04:30 +0000] "GET /api/dashboard HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:04:30 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:04:30 +0000] "GET /api/orders?source=ONLINE&status=PENDING&pageSize=1 HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:04:30 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:04:30 +0000] "GET /api/dashboard HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:04:30 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:04:30 +0000] "GET /api/notifications HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:04:30 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:04:30 +0000] "GET /api/notifications/unread-count HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:05:45 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:05:45 +0000] "GET /api/products?pageSize=100 HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:05:54 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:05:54 +0000] "GET /api/categories HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:05:56 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:05:56 +0000] "GET /api/categories HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:05:59 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:05:59 +0000] "GET /api/products?pageSize=100 HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:06:01 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:06:01 +0000] "GET /api/categories HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:08:05 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:08:05 +0000] "POST /api/auth/register HTTP/1.1" 201 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:08:05 [error]: Échec de l'envoi du mail à superadmin@pharmapulse.com: connect ECONNREFUSED 127.0.0.1:587
+2026-10-06 11:08:05 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:08:05 +0000] "GET /api/notifications/unread-count HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:08:05 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:08:05 +0000] "GET /api/dashboard HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:08:05 [error]: Échec de l'envoi du mail à tandia@gmail.com: connect ECONNREFUSED ::1:587
+2026-10-06 11:08:05 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:08:05 +0000] "GET /api/notifications HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:08:05 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:08:05 +0000] "GET /api/orders?source=ONLINE&status=PENDING&pageSize=1 HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:08:05 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:08:05 +0000] "GET /api/dashboard HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:08:40 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:08:40 +0000] "GET /api/public/site HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:08:40 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:08:40 +0000] "GET /api/public/pharmacies HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:09:01 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:09:01 +0000] "GET /api/dashboard HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:09:01 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:09:01 +0000] "GET /api/notifications/unread-count HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:09:01 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:09:01 +0000] "GET /api/dashboard HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:09:01 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:09:01 +0000] "GET /api/notifications HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:09:01 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:09:01 +0000] "GET /api/orders?source=ONLINE&status=PENDING&pageSize=1 HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:09:31 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:09:31 +0000] "POST /api/super/auth/login HTTP/1.1" 200 532 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:09:33 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:09:33 +0000] "GET /api/super/stats HTTP/1.1" 200 786 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:09:47 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:09:47 +0000] "GET /api/super/pharmacies?page=1&pageSize=20 HTTP/1.1" 200 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:10:11 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:10:11 +0000] "GET /api/super/pharmacies/6 HTTP/1.1" 200 978 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:10:40 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:10:40 +0000] "PATCH /api/super/pharmacies/5/status HTTP/1.1" 200 60 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:10:40 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:10:40 +0000] "GET /api/super/pharmacies?page=1&pageSize=20 HTTP/1.1" 200 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:10:40 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:10:40 +0000] "GET /api/super/stats HTTP/1.1" 200 785 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:10:55 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:10:55 +0000] "GET /api/super/pharmacies/5 HTTP/1.1" 200 980 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:19:59 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:19:59 +0000] "GET /api/public/site HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:19:59 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:19:59 +0000] "GET /api/public/site HTTP/1.1" 200 89 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:19:59 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:19:59 +0000] "GET /api/super/pharmacies?page=1&pageSize=20 HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:20:00 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:20:00 +0000] "GET /api/super/stats HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:20:06 [info]: ✅ Database connected
+2026-10-06 11:20:06 [info]: 🚀 PharmaPulse API → http://localhost:3001
+2026-10-06 11:20:06 [info]: 🔐 SuperAdmin panel → http://localhost:3001/api/super
+2026-10-06 11:20:06 [info]: 📋 Environment: development
+2026-10-06 11:22:18 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:22:18 +0000] "POST /api/auth/register HTTP/1.1" 201 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:22:19 [error]: Échec de l'envoi du mail à superadmin@pharmapulse.com: Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to
+535 5.7.8  https://support.google.com/mail/?p=BadCredentials 5b1f17b1804b1-4a17c7b7f00sm18204665e9.13 - gsmtp
+2026-10-06 11:22:19 [error]: Échec de l'envoi du mail à hamahoullah.mangassouba@mdscresoft-group.com: Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to
+535 5.7.8  https://support.google.com/mail/?p=BadCredentials 5b1f17b1804b1-4a17bfeb65bsm17894695e9.5 - gsmtp
+2026-10-06 11:22:21 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:22:21 +0000] "GET /api/dashboard HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:22:21 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:22:21 +0000] "GET /api/orders?source=ONLINE&status=PENDING&pageSize=1 HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:22:21 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:22:21 +0000] "GET /api/dashboard HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:22:21 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:22:21 +0000] "GET /api/notifications/unread-count HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:22:21 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:22:21 +0000] "GET /api/notifications HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:24:29 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:24:29 +0000] "POST /api/auth/register HTTP/1.1" 201 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:24:30 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:24:30 +0000] "GET /api/dashboard HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:24:30 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:24:30 +0000] "GET /api/dashboard HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:24:30 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:24:30 +0000] "GET /api/notifications/unread-count HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:24:30 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:24:30 +0000] "GET /api/notifications HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:24:30 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:24:30 +0000] "GET /api/orders?source=ONLINE&status=PENDING&pageSize=1 HTTP/1.1" 403 85 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:24:30 [error]: Échec de l'envoi du mail à superadmin@pharmapulse.com: Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to
+535 5.7.8  https://support.google.com/mail/?p=BadCredentials ffacd0b85a97d-48c6cd7c326sm2619930f8f.53 - gsmtp
+2026-10-06 11:24:30 [error]: Échec de l'envoi du mail à saha@gmail.com: Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to
+535 5.7.8  https://support.google.com/mail/?p=BadCredentials ffacd0b85a97d-48c6773663dsm5865211f8f.4 - gsmtp
+2026-10-06 11:24:58 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:24:58 +0000] "GET /api/super/users?page=1&pageSize=20 HTTP/1.1" 403 69 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:25:03 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:25:03 +0000] "GET /api/super/pharmacies?page=1&pageSize=20 HTTP/1.1" 403 69 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:25:10 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:25:10 +0000] "GET /api/public/site HTTP/1.1" 304 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:25:19 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:25:19 +0000] "POST /api/super/auth/login HTTP/1.1" 200 532 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:25:22 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:25:22 +0000] "GET /api/super/stats HTTP/1.1" 200 766 "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:25:29 [info]: ::ffff:127.0.0.1 - - [06/Oct/2026:11:25:29 +0000] "GET /api/super/pharmacies?page=1&pageSize=20 HTTP/1.1" 200 - "http://localhost:5173/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0"
+2026-10-06 11:26:43 [info]: Mail envoyé à hamallahmanga@gmail.com (<3d227219-057c-04c4-6aae-acd3ae3f6086@gmail.com>)

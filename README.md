@@ -48,11 +48,15 @@ L'API répond sur `http://localhost:3001/api`. Pour vérifier : `http://localhos
 
 | Rôle | Email | Mot de passe |
 |---|---|---|
-| Super Admin | `superadmin@pharmapulse.com` | `SuperAdmin2024!` |
-| Admin — Pharmacie Chifa (active) | `admin@pharmaciechifa.mr` | `Admin1234!` |
+Le seed crée **un Super Admin** et **une pharmacie** (Pharmacie Chifa, active, avec ses produits et quelques ventes).
+
+| Rôle | Email | Mot de passe |
+|---|---|---|
+| Super Admin | `hamallahmanga@gmail.com` | `SuperAdmin2024!` |
+| Admin — Pharmacie Chifa | `admin@pharmaciechifa.mr` | `Admin1234!` |
 | Manager / Caissier / Stock — Chifa | `manager@…`, `caissier@…`, `stock@pharmaciechifa.mr` | `Manager1234!`, `Caissier1234!`, `Stock1234!` |
-| Admin — Pharmacie Ennour (en essai) | `admin@pharmacieennour.mr` | `Admin1234!` |
-| Admin — Pharmacie Essalam (suspendue) | `admin@pharmacieessalam.mr` | `Admin1234!` |
+
+L'adresse du Super Admin est une vraie boîte mail : elle reçoit les notifications de nouvelles inscriptions et les liens « mot de passe oublié ». Pour la changer, modifiez `SUPER_ADMIN_EMAIL` dans `src/db/seed.js`.
 
 > ⚠️ Ne lancez **jamais** le seed sur la base de production : ces mots de passe sont publics.
 
