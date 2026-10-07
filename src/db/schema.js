@@ -209,6 +209,7 @@ export const products = pgTable('products', {
   subunit_type:     unitType('subunit_type'),
   subunit_name:     text('subunit_name'),
   is_divisible:     boolean('is_divisible').notNull().default(false),
+  image_updated_at: ts('image_updated_at'), // null = pas d'image ; sert aussi de version pour le cache (?v=)
   createdAt:        createdAt(),
   updatedAt:        updatedAt(),
   deletedAt:        ts('deletedAt'),
@@ -226,6 +227,16 @@ export const products = pgTable('products', {
   fk('products', t.userId, users.id, 'set null'),
   fk('products', t.categoryId, category.id),
   fk('products', t.pharmacyId, pharmacy.id),
+])
+
+// Image kept out of the products row so listings stay light (same pattern as pharmacy_logos)
+export const productImages = pgTable('product_images', {
+  productId: integer('productId').primaryKey(),
+  mime:      text('mime').notNull(),
+  data:      text('data').notNull(), // base64
+  updatedAt: updatedAt(),
+}, (t) => [
+  fk('product_images', t.productId, products.id, 'cascade'),
 ])
 
 export const batches = pgTable('batches', {

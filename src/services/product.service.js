@@ -1,11 +1,15 @@
 import { eq, ne, and, isNull, gt, lt, asc, desc, count, sum } from 'drizzle-orm'
 import db from '../config/database.js'
-import { products, batches, stockMovements } from '../db/schema.js'
+import { products, productImages, batches, stockMovements } from '../db/schema.js'
 import { contains, toRow, withCounts } from '../db/helpers.js'
 import { getPaginationParams } from '../utils/response.js'
 import { createAuditLog } from '../utils/audit.js'
+import { parseImageDataUrl } from '../utils/image.js'
 
 const withCategory = { category: { columns: { id: true, name: true } } }
+
+// image_updated_at is only set through the image endpoints
+const ROW_OMIT = ['id', 'createdAt', 'updatedAt', 'image_updated_at']
 
 export async function getProducts(pharmacyId, query) {
   const { page, pageSize, skip, take } = getPaginationParams(query)
@@ -74,7 +78,7 @@ export async function createProduct(pharmacyId, userId, data, req) {
   if (existing) throw { statusCode: 409, message: req.t('product.barcode_taken') }
 
   const [created] = await db.insert(products).values({
-    ...toRow(products, data),
+    ...toRow(products, data, ROW_OMIT),
     pharmacyId,
     userId,
     sale_price:     parseFloat(data.sale_price),
@@ -126,7 +130,7 @@ export async function updateProduct(id, pharmacyId, userId, data, req) {
 
   await db.update(products)
     .set({
-      ...toRow(products, data),
+      ...toRow(products, data, ROW_OMIT),
       ...(data.sale_price     !== undefined && { sale_price: parseFloat(data.sale_price) }),
       ...(data.purchase_price !== undefined && { purchase_price: parseFloat(data.purchase_price) }),
       ...(data.threshold      !== undefined && { threshold: parseFloat(data.threshold) }),
@@ -155,6 +159,50 @@ export async function deleteProduct(id, pharmacyId, userId, req) {
     action: 'DELETE', entity: 'products', entity_id: id,
     old_values: product, userId, pharmacyId, req,
   })
+}
+
+async function findOwnProduct(id, pharmacyId, req) {
+  const product = await db.query.products.findFirst({
+    where: and(eq(products.id, id), eq(products.pharmacyId, pharmacyId), isNull(products.deletedAt)),
+    columns: { id: true },
+  })
+  if (!product) throw { statusCode: 404, message: req.t('product.not_found') }
+}
+
+export async function updateProductImage(id, pharmacyId, userId, dataUrl, req) {
+  await findOwnProduct(id, pharmacyId, req)
+  const { mime, data, bytes } = parseImageDataUrl(dataUrl)
+
+  const now = new Date()
+  await db.transaction(async (tx) => {
+    await tx.insert(productImages)
+      .values({ productId: id, mime, data })
+      .onConflictDoUpdate({ target: productImages.productId, set: { mime, data, updatedAt: now } })
+    await tx.update(products).set({ image_updated_at: now }).where(eq(products.id, id))
+  })
+
+  await createAuditLog({
+    action: 'UPDATE_IMAGE', entity: 'products', entity_id: id,
+    new_values: { mime, bytes }, userId, pharmacyId, req,
+  })
+
+  return { image_updated_at: now }
+}
+
+export async function deleteProductImage(id, pharmacyId, userId, req) {
+  await findOwnProduct(id, pharmacyId, req)
+
+  await db.transaction(async (tx) => {
+    await tx.delete(productImages).where(eq(productImages.productId, id))
+    await tx.update(products).set({ image_updated_at: null }).where(eq(products.id, id))
+  })
+
+  await createAuditLog({
+    action: 'DELETE_IMAGE', entity: 'products', entity_id: id,
+    userId, pharmacyId, req,
+  })
+
+  return { image_updated_at: null }
 }
 
 export async function getProductStats(pharmacyId) {

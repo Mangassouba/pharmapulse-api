@@ -5,7 +5,7 @@
 import { Router } from 'express'
 import { eq, ne, and, gt, isNull, inArray, asc, desc, count } from 'drizzle-orm'
 import db from '../config/database.js'
-import { pharmacy, pharmacyLogos, products, users, orders, orderDetails, notifications } from '../db/schema.js'
+import { pharmacy, pharmacyLogos, products, productImages, users, orders, orderDetails, notifications } from '../db/schema.js'
 import { contains, withCounts } from '../db/helpers.js'
 import { sendImage } from '../utils/image.js'
 import { getSiteLogo, getSiteName } from '../services/site.service.js'
@@ -145,6 +145,15 @@ router.get('/pharmacies/:id/products', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
+router.get('/products/:id/image', async (req, res, next) => {
+  try {
+    const image = await db.query.productImages.findFirst({ where: eq(productImages.productId, parseInt(req.params.id)) })
+    if (!image) return res.status(404).json({ success: false, message: 'Image introuvable.' })
+
+    sendImage(res, image, !!req.query.v)
+  } catch (err) { next(err) }
+})
+
 // ══════════════════════════════════════════════════════════════
 // RECHERCHE
 // ══════════════════════════════════════════════════════════════
@@ -179,6 +188,7 @@ router.get('/products/search', async (req, res, next) => {
       unit_type:       p.unit_type,
       unit_quantity:   p.unit_quantity,
       prescription_req: p.prescription_req,
+      image_updated_at: p.image_updated_at,
       category:        p.category,
       pharmacyId:      p.pharmacyId,
       pharmacyName:    p.pharmacy?.name,

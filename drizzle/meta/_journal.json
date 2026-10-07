@@ -43,6 +43,13 @@
       "when": 1791288701645,
       "tag": "0005_super_admin_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791367411926,
+      "tag": "0006_product_image",
+      "breakpoints": true
     }
   ]
 }

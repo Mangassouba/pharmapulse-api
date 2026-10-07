@@ -8,7 +8,7 @@ const SIGNATURES = {
 }
 
 /**
- * Validate a logo sent as a data URL (PNG, JPEG or WebP, max 512 KB).
+ * Validate an image (logo, product photo) sent as a data URL (PNG, JPEG or WebP, max 512 KB).
  * Returns { mime, data } with data re-encoded as base64; throws a 400 otherwise.
  */
 export function parseImageDataUrl(dataUrl) {
@@ -18,7 +18,7 @@ export function parseImageDataUrl(dataUrl) {
   const [, mime, base64] = match
   const buf = Buffer.from(base64, 'base64')
   if (!buf.length || !SIGNATURES[mime](buf)) throw { statusCode: 400, message: 'Le fichier n\'est pas une image valide.' }
-  if (buf.length > IMAGE_MAX_BYTES) throw { statusCode: 400, message: 'Le logo ne doit pas dépasser 512 Ko.' }
+  if (buf.length > IMAGE_MAX_BYTES) throw { statusCode: 400, message: 'L\'image ne doit pas dépasser 512 Ko.' }
 
   return { mime, data: buf.toString('base64'), bytes: buf.length }
 }

@@ -36,6 +36,20 @@ export async function remove(req, res, next) {
   } catch (err) { next(err) }
 }
 
+export async function updateImage(req, res, next) {
+  try {
+    const data = await productService.updateProductImage(parseInt(req.params.id), req.user.pharmacyId, req.user.id, req.body.image, req)
+    return successResponse(res, { message: 'Image du produit mise à jour', data })
+  } catch (err) { next(err) }
+}
+
+export async function deleteImage(req, res, next) {
+  try {
+    const data = await productService.deleteProductImage(parseInt(req.params.id), req.user.pharmacyId, req.user.id, req)
+    return successResponse(res, { message: 'Image du produit supprimée', data })
+  } catch (err) { next(err) }
+}
+
 export async function stats(req, res, next) {
   try {
     const data = await productService.getProductStats(req.user.pharmacyId)
