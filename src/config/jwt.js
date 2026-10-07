@@ -1,5 +1,18 @@
 import jwt from 'jsonwebtoken'
 
+// In production, refuse to start with a missing or weak secret: the dev fallbacks below are
+// public (they are in the repo), so anyone could forge a valid token with them.
+if (process.env.NODE_ENV === 'production') {
+  for (const name of ['JWT_SECRET', 'JWT_REFRESH_SECRET']) {
+    if ((process.env[name] || '').length < 32) {
+      throw new Error(`${name} manquant ou trop court (32 caractères minimum). Générez-le avec : node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`)
+    }
+  }
+  if (process.env.JWT_SECRET === process.env.JWT_REFRESH_SECRET) {
+    throw new Error('JWT_SECRET et JWT_REFRESH_SECRET doivent être différents.')
+  }
+}
+
 const JWT_SECRET         = process.env.JWT_SECRET         || 'change_me_in_production'
 const JWT_EXPIRES_IN     = process.env.JWT_EXPIRES_IN     || '7d'
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'refresh_change_me'
