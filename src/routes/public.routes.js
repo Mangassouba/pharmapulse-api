@@ -5,7 +5,7 @@
 import { Router } from 'express'
 import { eq, ne, and, gt, isNull, inArray, asc, desc, count } from 'drizzle-orm'
 import db from '../config/database.js'
-import { pharmacy, pharmacyLogos, products, productImages, users, orders, orderDetails, notifications } from '../db/schema.js'
+import { pharmacy, pharmacyLogos, products, productImages, siteVisits, users, orders, orderDetails, notifications } from '../db/schema.js'
 import { contains, withCounts } from '../db/helpers.js'
 import { sendImage } from '../utils/image.js'
 import { getSiteLogo, getSiteName } from '../services/site.service.js'
@@ -80,6 +80,24 @@ router.get('/pharmacies/:id', async (req, res, next) => {
     const [ph] = await findPublicPharmacies(and(eq(pharmacy.id, parseInt(req.params.id)), activePharmacy))
     if (!ph) return res.status(404).json({ success: false, message: 'Pharmacie introuvable.' })
     res.json({ success: true, data: ph })
+  } catch (err) { next(err) }
+})
+
+// ══════════════════════════════════════════════════════════════
+// VISITES (compteur de visiteurs du site public)
+// ══════════════════════════════════════════════════════════════
+
+const VISITOR_ID = /^[A-Za-z0-9-]{16,64}$/
+
+router.post('/visit', async (req, res, next) => {
+  try {
+    const { visitorId } = req.body || {}
+    if (!VISITOR_ID.test(visitorId || '')) return res.status(400).json({ success: false, message: 'visitorId invalide.' })
+
+    // Counted once per browser per day (UTC = heure de Nouakchott)
+    const day = new Date().toISOString().slice(0, 10)
+    await db.insert(siteVisits).values({ day, visitorId }).onConflictDoNothing()
+    res.status(204).end()
   } catch (err) { next(err) }
 })
 

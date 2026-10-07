@@ -1,9 +1,9 @@
 import bcrypt from 'bcryptjs'
-import { eq, and, or, isNull, gte, lte, inArray, desc, count, sum } from 'drizzle-orm'
+import { eq, and, or, isNull, gte, lte, inArray, desc, count, countDistinct, sum } from 'drizzle-orm'
 import db from '../config/database.js'
 import {
   superAdmins, superAdminLogs, pharmacy as pharmacyTable, users, products, sales, receptions,
-  category, subscriptions, subscriptionPayments, notifications,
+  category, subscriptions, subscriptionPayments, notifications, siteVisits,
 } from '../db/schema.js'
 import { contains, withCounts } from '../db/helpers.js'
 import { signToken, signResetToken, decodeResetToken, verifyResetToken } from '../config/jwt.js'
@@ -99,7 +99,10 @@ export async function getPlatformStats() {
     limit: 5,
   })
 
+  const visitors = await getVisitorStats()
+
   return {
+    visitors,
     pharmacies: { total: totalPharmacies, active: activePharmacies, suspended: suspendedPharmacies, pending: totalPharmacies - activePharmacies - suspendedPharmacies },
     users: { total: totalUsers },
     sales: { total: totalSalesAgg.count, amount: parseFloat(totalSalesAgg.sum || 0) },
@@ -107,6 +110,35 @@ export async function getPlatformStats() {
     revenue: { thisMonth: parseFloat(monthRevenue.sum || 0) },
     recentPharmacies,
   }
+}
+
+// Unique visitors of the public site (site_visits holds one row per browser per UTC day)
+async function getVisitorStats() {
+  const dayOffset = (n) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10)
+  const today = dayOffset(0)
+  const distinctSince = (from) => db
+    .select({ n: countDistinct(siteVisits.visitorId) }).from(siteVisits)
+    .where(from ? gte(siteVisits.day, from) : undefined)
+    .then(([r]) => r.n)
+
+  const [todayCount, last7, last30, total, perDay] = await Promise.all([
+    distinctSince(today),
+    distinctSince(dayOffset(6)),
+    distinctSince(dayOffset(29)),
+    distinctSince(null),
+    db.select({ day: siteVisits.day, n: count() }).from(siteVisits)
+      .where(gte(siteVisits.day, dayOffset(29)))
+      .groupBy(siteVisits.day),
+  ])
+
+  // Last 30 days, oldest first, days without visits included as 0
+  const byDay = Object.fromEntries(perDay.map(r => [r.day, r.n]))
+  const daily = Array.from({ length: 30 }, (_, i) => {
+    const day = dayOffset(29 - i)
+    return { day, visitors: byDay[day] || 0 }
+  })
+
+  return { today: todayCount, last7, last30, total, daily }
 }
 
 // ── Pharmacies management ─────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import {
   pgTable, pgEnum, serial, integer, text, boolean, doublePrecision,
-  numeric, timestamp, jsonb, index, uniqueIndex, foreignKey,
+  numeric, timestamp, date, jsonb, index, uniqueIndex, foreignKey, primaryKey,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
@@ -518,6 +518,16 @@ export const superAdminNotifications = pgTable('super_admin_notifications', {
   index('super_admin_notifications_is_read_idx').on(t.is_read),
   index('super_admin_notifications_createdAt_idx').on(t.createdAt),
   fk('super_admin_notifications', t.pharmacyId, pharmacy.id, 'cascade'),
+])
+
+// Public site visitors: one row per browser per day (UTC). visitorId is a random id kept in the
+// visitor's browser — no IP or personal data is stored.
+export const siteVisits = pgTable('site_visits', {
+  day:       date('day', { mode: 'string' }).notNull(),
+  visitorId: text('visitorId').notNull(),
+  createdAt: createdAt(),
+}, (t) => [
+  primaryKey({ name: 'site_visits_pkey', columns: [t.day, t.visitorId] }),
 ])
 
 export const settings = pgTable('settings', {

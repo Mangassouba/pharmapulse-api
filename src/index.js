@@ -76,6 +76,7 @@ app.use('/api/auth/register',      rateLimit({ windowMs: 60 * 60 * 1000, max: 10
 app.use('/api/auth/forgot-password', rateLimit({ windowMs: 60 * 60 * 1000, max: 5 }))
 app.use('/api/auth/reset-password',  rateLimit({ windowMs: 15 * 60 * 1000, max: 10 }))
 app.use('/api/super/auth/login',   rateLimit({ windowMs: 15 * 60 * 1000, max: 10 }))
+app.use('/api/public/visit',        rateLimit({ windowMs: 60 * 60 * 1000, max: 30 }))
 app.use('/api/super/auth/forgot-password', rateLimit({ windowMs: 60 * 60 * 1000, max: 5 }))
 app.use('/api/super/auth/reset-password',  rateLimit({ windowMs: 15 * 60 * 1000, max: 10 }))
 
