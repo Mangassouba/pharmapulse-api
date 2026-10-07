@@ -64,6 +64,13 @@ export async function updateDuty(req, res, next) {
   } catch (err) { next(err) }
 }
 
+export async function updateLocation(req, res, next) {
+  try {
+    const data = await authService.updateLocation(req.user.pharmacyId, req.body, req)
+    return successResponse(res, { message: 'Position mise à jour', data })
+  } catch (err) { next(err) }
+}
+
 export async function updateLogo(req, res, next) {
   try {
     const data = await authService.updateLogo(req.user.pharmacyId, req.body.logo, req)

@@ -51,7 +51,7 @@ async function findPublicPharmacies(where) {
 
 const orderPublicWith = {
   details:  { with: { product: { columns: { id: true, name: true, unit_type: true } } } },
-  pharmacy: { columns: { id: true, name: true, phone: true, address: true, city: true } },
+  pharmacy: { columns: { id: true, name: true, phone: true, address: true, city: true, latitude: true, longitude: true } },
 }
 
 // ══════════════════════════════════════════════════════════════

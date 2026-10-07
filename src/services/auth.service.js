@@ -18,7 +18,7 @@ const meQuery = {
   },
   with: {
     pharmacy: {
-      columns: { id: true, name: true, email: true, phone: true, address: true, city: true, country: true, is_active: true, duty_days: true, duty_start: true, duty_end: true, logo_updated_at: true },
+      columns: { id: true, name: true, email: true, phone: true, address: true, city: true, country: true, is_active: true, duty_days: true, duty_start: true, duty_end: true, latitude: true, longitude: true, logo_updated_at: true },
     },
   },
 }
@@ -288,6 +288,31 @@ export async function updateDuty(pharmacyId, { dutyDays, dutyStart = null, dutyE
       duty_days:  pharmacyTable.duty_days,
       duty_start: pharmacyTable.duty_start,
       duty_end:   pharmacyTable.duty_end,
+    })
+  if (!updated) throw { statusCode: 404, message: req.t('pharmacy.not_found') }
+
+  await createAuditLog({
+    action: 'UPDATE',
+    entity: 'pharmacy',
+    entity_id: pharmacyId,
+    new_values: values,
+    userId: req.user.id,
+    pharmacyId,
+    req,
+  })
+
+  return updated
+}
+
+export async function updateLocation(pharmacyId, { latitude = null, longitude = null }, req) {
+  const values = { latitude, longitude }
+  const [updated] = await db.update(pharmacyTable)
+    .set(values)
+    .where(eq(pharmacyTable.id, pharmacyId))
+    .returning({
+      id:        pharmacyTable.id,
+      latitude:  pharmacyTable.latitude,
+      longitude: pharmacyTable.longitude,
     })
   if (!updated) throw { statusCode: 404, message: req.t('pharmacy.not_found') }
 

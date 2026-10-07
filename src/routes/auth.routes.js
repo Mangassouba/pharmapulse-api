@@ -3,7 +3,7 @@ import { body } from 'express-validator'
 import * as ctrl from '../controllers/auth.controller.js'
 import { authenticate, authorize } from '../middlewares/auth.js'
 import { validate } from '../middlewares/validate.js'
-import { registerValidator, loginValidator, changePasswordValidator, updateMeValidator, dutyValidator, forgotPasswordValidator, resetPasswordValidator } from '../validators/auth.validator.js'
+import { registerValidator, loginValidator, changePasswordValidator, updateMeValidator, dutyValidator, locationValidator, forgotPasswordValidator, resetPasswordValidator } from '../validators/auth.validator.js'
 
 const router = Router()
 
@@ -69,6 +69,13 @@ router.put('/password', authenticate, changePasswordValidator, validate, ctrl.ch
  * @access Private (ADMIN)
  */
 router.put('/pharmacy/duty', authenticate, authorize('ADMIN'), dutyValidator, validate, ctrl.updateDuty)
+
+/**
+ * @route  PUT /api/auth/pharmacy/location
+ * @desc   Set the pharmacy GPS position (latitude/longitude), or both null to clear it
+ * @access Private (ADMIN)
+ */
+router.put('/pharmacy/location', authenticate, authorize('ADMIN'), locationValidator, validate, ctrl.updateLocation)
 
 /**
  * @route  PUT /api/auth/pharmacy/logo

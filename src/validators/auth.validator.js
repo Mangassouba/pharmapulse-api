@@ -49,3 +49,13 @@ export const changePasswordValidator = [
   body('currentPassword').notEmpty().withMessage('Current password required'),
   body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters'),
 ]
+
+// Both coordinates, or both null to clear the position
+export const locationValidator = [
+  body('latitude').optional({ values: 'null' }).isFloat({ min: -90, max: 90 }).withMessage('Latitude invalide').toFloat(),
+  body('longitude').optional({ values: 'null' }).isFloat({ min: -180, max: 180 }).withMessage('Longitude invalide').toFloat(),
+  body('longitude').custom((lng, { req }) => {
+    if (((req.body.latitude ?? null) === null) !== ((lng ?? null) === null)) throw new Error('Renseignez la latitude et la longitude, ou aucune des deux')
+    return true
+  }),
+]
