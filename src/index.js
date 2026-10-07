@@ -42,8 +42,16 @@ const PORT = process.env.PORT || 3000
 if (process.env.TRUST_PROXY) app.set('trust proxy', Number(process.env.TRUST_PROXY) || process.env.TRUST_PROXY)
 app.use(helmet())
 app.use(compression())
+// Tolerant parsing: "https://a.app/ , https://b.app" → exact origins (no spaces, no trailing slash)
+const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173')
+  .split(',').map(o => o.trim().replace(/\/+$/, '')).filter(Boolean)
 app.use(cors({
-  origin:      (process.env.CORS_ORIGINS || 'http://localhost:5173').split(','),
+  origin: (origin, cb) => {
+    // No Origin header: same-origin, curl, health checks
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true)
+    logger.warn(`CORS: origine refusée "${origin}" — à ajouter dans CORS_ORIGINS (autorisées : ${allowedOrigins.join(', ')})`)
+    cb(null, false)
+  },
   credentials: true,
   methods:     ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization','Accept-Language'],
@@ -142,6 +150,7 @@ async function bootstrap() {
       logger.info(`🚀 PharmaPulse API → http://localhost:${PORT}`)
       logger.info(`🔐 SuperAdmin panel → http://localhost:${PORT}/api/super`)
       logger.info(`📋 Environment: ${process.env.NODE_ENV || 'development'}`)
+      logger.info(`🌐 CORS autorisé : ${allowedOrigins.join(', ')}`)
       if (process.env.NODE_ENV !== 'test') startTrialReminderJob()
     })
   } catch (err) {

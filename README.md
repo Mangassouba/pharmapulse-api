@@ -118,6 +118,7 @@ Sans SMTP configuré, l'application fonctionne mais aucun email ne part : les er
 | `npm run db:migrate` | Applique les migrations en attente |
 | `npm run db:generate -- --name <nom>` | Génère une migration après une modification de `src/db/schema.js` |
 | `npm run db:seed` | Charge les données de démo (**jamais en production**) |
+| `npm run db:create-super-admin` | Crée le compte Super Admin, sans données de démo (ou change son mot de passe s'il existe). À utiliser en production. |
 | `npm run db:studio` | Ouvre Drizzle Studio pour explorer la base |
 
 ---

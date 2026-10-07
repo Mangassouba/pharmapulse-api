@@ -12,6 +12,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "node src/db/seed.js",
+    "db:create-super-admin": "node src/db/create-super-admin.js",
     "db:backfill-order-sales": "node src/db/backfill-order-sales.js"
   },
   "dependencies": {
