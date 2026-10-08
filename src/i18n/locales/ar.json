@@ -14,7 +14,11 @@
     "password_mismatch": "كلمتا المرور غير متطابقتين",
     "reset_link_sent": "إذا كان هناك حساب مرتبط بهذا البريد، فقد تم إرسال رابط إعادة التعيين",
     "reset_success": "تمت إعادة تعيين كلمة المرور، يمكنك الآن تسجيل الدخول",
-    "reset_token_invalid": "رابط إعادة التعيين غير صالح أو منتهي الصلاحية"
+    "reset_token_invalid": "رابط إعادة التعيين غير صالح أو منتهي الصلاحية",
+    "current_password_wrong": "كلمة المرور الحالية غير صحيحة.",
+    "pharmacy_suspended": "صيدليتك معلّقة بسبب عدم الدفع. تواصل مع المسؤول.",
+    "pharmacy_disabled": "صيدليتك معطّلة. تواصل مع دعم {{site}}.",
+    "subscription_expired": "انتهى اشتراكك. جدّده لمواصلة استخدام التطبيق."
   },
   "pharmacy": {
     "created": "تم إنشاء الصيدلية بنجاح",
@@ -37,7 +41,8 @@
     "updated": "تم تحديث الفئة",
     "deleted": "تم حذف الفئة",
     "not_found": "الفئة غير موجودة",
-    "name_taken": "اسم الفئة هذا موجود بالفعل"
+    "name_taken": "اسم الفئة هذا موجود بالفعل",
+    "in_use": "لا يمكن حذف هذه الفئة: لا يزال {{count}} منتج يستخدمها. غيّر فئتها أولًا."
   },
   "sale": {
     "created": "تم تسجيل البيع بنجاح",
@@ -61,11 +66,17 @@
     "updated": "تم تحديث الطلب",
     "cancelled": "تم إلغاء الطلب",
     "not_found": "الطلب غير موجود",
-    "list_success": "تم جلب الطلبات"
+    "list_success": "تم جلب الطلبات",
+    "code_invalid": "رمز غير صالح أو الطلب غير موجود لهذه الصيدلية.",
+    "code_expired": "انتهت صلاحية هذا الرمز في {{date}}.",
+    "already_picked_up": "تم استلام هذا الطلب والمصادقة عليه بالفعل.",
+    "was_cancelled": "تم إلغاء هذا الطلب.",
+    "only_in_stock": "«{{name}}»: يتوفر {{stock}} فقط في المخزون.",
+    "pickup_validated": "تمت المصادقة على الطلب {{code}} بنجاح."
   },
   "batch": {
     "number_other_product": "رقم الدفعة هذا موجود بالفعل لمنتج آخر",
-    "not_available":"هذه الدفعة غير متاحة لهذا المنتج (نفدت أو منتهية الصلاحية أو غير موجودة)",
+    "not_available": "هذه الدفعة غير متاحة لهذا المنتج (نفدت أو منتهية الصلاحية أو غير موجودة)",
     "created": "تم إنشاء الدفعة بنجاح",
     "updated": "تم تحديث الدفعة",
     "deleted": "تم حذف الدفعة",
@@ -92,7 +103,8 @@
     "not_found": "المستخدم غير موجود",
     "list_success": "تم جلب المستخدمين",
     "password_changed": "تم تغيير كلمة المرور بنجاح",
-    "profile_updated": "تم تحديث الملف الشخصي"
+    "profile_updated": "تم تحديث الملف الشخصي",
+    "cannot_delete_self": "لا يمكنك حذف حسابك الخاص."
   },
   "notification": {
     "list_success": "تم جلب الإشعارات",
@@ -103,23 +115,166 @@
     "success": "تم جلب بيانات لوحة التحكم"
   },
   "validation": {
-    "required": "الحقل {{field}} مطلوب",
-    "invalid_email": "عنوان بريد إلكتروني غير صالح",
-    "min_length": "يجب أن يحتوي {{field}} على {{min}} أحرف على الأقل",
-    "max_length": "يجب ألا يتجاوز {{field}} {{max}} حرفًا",
-    "min_value": "يجب أن يكون {{field}} أكبر من أو يساوي {{min}}",
-    "invalid_type": "نوع قيمة غير صالح لـ {{field}}",
-    "positive": "يجب أن يكون {{field}} عددًا موجبًا"
+    "required": "«{{field}}» مطلوب.",
+    "invalid_email": "«{{field}}» ليس بريدًا إلكترونيًا صالحًا.",
+    "password_min": "يجب أن تحتوي كلمة المرور على 6 أحرف على الأقل.",
+    "select": "يرجى اختيار «{{field}}».",
+    "min_zero": "يجب أن يكون «{{field}}» رقمًا أكبر من أو يساوي 0.",
+    "above_zero": "يجب أن يكون «{{field}}» أكبر من 0.",
+    "invalid_choice": "القيمة المختارة لـ «{{field}}» غير صالحة.",
+    "invalid_date": "«{{field}}» ليس تاريخًا صالحًا.",
+    "at_least_one_item": "أضف منتجًا واحدًا على الأقل.",
+    "expiry_required_with_batch": "تاريخ الانتهاء مطلوب عند إدخال رقم الدفعة.",
+    "invalid_time": "يجب أن يكون «{{field}}» وقتًا بصيغة HH:MM (مثال 08:30).",
+    "duty_both_or_none": "أدخل وقت بداية ونهاية المناوبة معًا، أو لا شيء منهما.",
+    "duty_same_time": "يجب أن يختلف وقت بداية المناوبة عن وقت نهايتها.",
+    "location_both_or_none": "أدخل خط العرض وخط الطول معًا، أو لا شيء منهما.",
+    "invalid": "قيمة «{{field}}» غير صالحة.",
+    "max_length_60": "يجب ألا يتجاوز «{{field}}» 60 حرفًا.",
+    "line": "السطر {{n}} – {{field}}",
+    "summary": "يرجى التصحيح: {{list}}"
   },
   "error": {
-    "internal": "خطأ داخلي في الخادم",
-    "not_found": "المورد غير موجود",
-    "bad_request": "طلب غير صالح",
-    "conflict": "تعارض في البيانات",
-    "validation": "خطأ في التحقق",
-    "rate_limit": "طلبات كثيرة جدًا، يرجى المحاولة لاحقًا"
+    "internal": "حدث خطأ غير متوقع. أعد المحاولة بعد قليل، وإذا استمرت المشكلة تواصل مع الدعم.",
+    "not_found": "العنصر المطلوب غير موجود. ربما تم حذفه.",
+    "bad_request": "الطلب غير مكتمل أو غير صحيح. تحقق من المعلومات المدخلة.",
+    "conflict": "هذه المعلومة موجودة بالفعل. استخدم قيمة أخرى.",
+    "validation": "بعض المعلومات المدخلة غير صحيحة.",
+    "rate_limit": "محاولات كثيرة جدًا. انتظر بضع دقائق ثم أعد المحاولة.",
+    "linked_data": "لا يمكن تنفيذ الإجراء: هذا العنصر مستخدم في مكان آخر (مبيعات، دفعات، استلامات…)."
   },
   "pagination": {
     "success": "تم جلب البيانات"
+  },
+  "fields": {
+    "name": "الاسم",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "currentPassword": "كلمة المرور الحالية",
+    "newPassword": "كلمة المرور الجديدة",
+    "token": "الرابط",
+    "phone": "الهاتف",
+    "address": "العنوان",
+    "pharmacyName": "اسم الصيدلية",
+    "pharmacyEmail": "بريد الصيدلية",
+    "pharmacyCity": "المدينة",
+    "pharmacyCountry": "البلد",
+    "adminName": "اسم المسؤول",
+    "adminEmail": "بريد المسؤول",
+    "adminPassword": "كلمة مرور المسؤول",
+    "trialDays": "أيام التجربة",
+    "dutyDays": "أيام المناوبة",
+    "dutyStart": "وقت بداية المناوبة",
+    "dutyEnd": "وقت نهاية المناوبة",
+    "latitude": "خط العرض",
+    "longitude": "خط الطول",
+    "logo": "الشعار",
+    "image": "الصورة",
+    "categoryId": "الفئة",
+    "description": "الوصف",
+    "barcode": "الرمز الشريطي",
+    "sale_price": "سعر البيع",
+    "purchase_price": "سعر الشراء",
+    "stock": "المخزون",
+    "threshold": "حد التنبيه",
+    "unit_type": "نوع الوحدة",
+    "subunit_type": "نوع الوحدة الفرعية",
+    "unit_quantity": "الكمية لكل وحدة",
+    "is_divisible": "قابل للتجزئة",
+    "prescription_req": "يتطلب وصفة",
+    "productId": "المنتج",
+    "quantity": "الكمية",
+    "initial_quantity": "الكمية الأولية",
+    "price": "السعر",
+    "number": "رقم الدفعة",
+    "batchNumber": "رقم الدفعة",
+    "batchId": "الدفعة",
+    "expiration_date": "تاريخ الانتهاء",
+    "expirationDate": "تاريخ الانتهاء",
+    "manufacturing_date": "تاريخ التصنيع",
+    "supplier": "المورّد",
+    "invoice_number": "رقم الفاتورة",
+    "items": "المنتجات",
+    "notes": "ملاحظات",
+    "customer": "اسم العميل",
+    "customer_phone": "هاتف العميل",
+    "customer_email": "بريد العميل",
+    "delivery_date": "تاريخ التسليم",
+    "payment_method": "طريقة الدفع",
+    "method": "طريقة الدفع",
+    "discount": "الخصم",
+    "tax": "الضريبة",
+    "role": "الدور",
+    "status": "الحالة",
+    "months": "المدة",
+    "reason": "السبب",
+    "reference": "المرجع"
+  },
+  "public": {
+    "logo_not_found": "الشعار غير موجود.",
+    "image_not_found": "الصورة غير موجودة.",
+    "pharmacy_missing": "لم يتم اختيار صيدلية لهذا الطلب.",
+    "pharmacy_unavailable": "هذه الصيدلية غير موجودة أو لا تقبل الطلبات حاليًا.",
+    "product_missing": "أحد منتجات سلتك لم يعد موجودًا (مرجع {{id}}). احذفه ثم أعد المحاولة.",
+    "code_invalid": "رمز غير صالح أو الطلب غير موجود."
+  },
+  "super": {
+    "invalid_credentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة، أو الحساب معطّل.",
+    "invalid_duration": "يجب أن تكون المدة {{list}} أشهر.",
+    "notification_read": "تم تعليم الإشعار كمقروء",
+    "notifications_all_read": "تم تعليم جميع الإشعارات كمقروءة",
+    "site_name_updated": "تم تحديث اسم الموقع",
+    "site_logo_updated": "تم تحديث شعار الموقع",
+    "site_logo_deleted": "تم حذف شعار الموقع",
+    "pharmacy_activated": "تم تفعيل الصيدلية بنجاح",
+    "pharmacy_suspended": "تم تعليق الصيدلية بنجاح",
+    "subscription_renewed": "تم تجديد الاشتراك بنجاح"
+  },
+  "notif": {
+    "no_reason": "غير محدد",
+    "trial_ending_tomorrow": {
+      "title": "⏳ نهاية الفترة التجريبية",
+      "message": "تنتهي تجربتك المجانية غدًا. تواصل معنا لتفعيل اشتراكك."
+    },
+    "trial_ending": {
+      "title": "⏳ نهاية الفترة التجريبية",
+      "message": "تنتهي تجربتك المجانية خلال {{days}} أيام. تواصل معنا لتفعيل اشتراكك."
+    },
+    "super_trial_ending_tomorrow": {
+      "title": "⏳ تنتهي التجربة غدًا: {{pharmacy}}",
+      "message": "تنتهي التجربة المجانية في {{end_date}}. تم إبلاغ الصيدلية عبر البريد الإلكتروني."
+    },
+    "super_trial_ending": {
+      "title": "⏳ تنتهي التجربة خلال {{days}} أيام: {{pharmacy}}",
+      "message": "تنتهي التجربة المجانية في {{end_date}}. تم إبلاغ الصيدلية عبر البريد الإلكتروني."
+    },
+    "order_picked_up": {
+      "title": "✅ تمت المصادقة على الطلب {{code}}",
+      "message": "تم تأكيد استلام {{customer}} — {{amount}} MRU."
+    },
+    "online_order": {
+      "title": "🛒 طلب عبر الإنترنت — {{code}}",
+      "message": "{{customer}} · {{amount}} MRU · الرمز: {{code}}. للتحضير."
+    },
+    "pharmacy_reactivated": {
+      "title": "✅ تمت إعادة تفعيل الصيدلية",
+      "message": "تمت إعادة تفعيل صيدليتك. يمكنك استخدام {{site}} مجددًا."
+    },
+    "pharmacy_suspended": {
+      "title": "⚠️ تم تعليق الصيدلية",
+      "message": "تم تعليق صيدليتك. السبب: {{reason}}. تواصل مع الدعم."
+    },
+    "subscription_renewed": {
+      "title": "✅ تم تجديد الاشتراك",
+      "message": "تم تجديد اشتراكك لمدة {{months}} أشهر ({{amount}} {{currency}}) حتى {{end_date}}."
+    },
+    "subscription_activated": {
+      "title": "✅ تم تفعيل الاشتراك",
+      "message": "تم تفعيل اشتراكك لمدة {{months}} أشهر ({{amount}} {{currency}}) حتى {{end_date}}."
+    },
+    "new_registration": {
+      "title": "🆕 تسجيل جديد: {{pharmacy}}",
+      "message": "{{admin}} ({{email}}){{city_suffix}} — بدأت التجربة المجانية."
+    }
   }
 }

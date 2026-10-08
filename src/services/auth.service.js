@@ -7,6 +7,7 @@ import { sendMail, passwordResetEmail, newRegistrationEmail, welcomeEmail } from
 import { createAuditLog } from '../utils/audit.js'
 import { parseImageDataUrl } from '../utils/image.js'
 import { accountExistsForPharmacyName } from '../db/helpers.js'
+import { notif } from '../utils/notification.js'
 import { notifySuperAdmins } from './superNotification.service.js'
 import { TRIAL_DAYS, DEFAULT_PLAN, CURRENCY } from '../utils/subscription.js'
 
@@ -153,7 +154,7 @@ export async function changePassword(userId, currentPassword, newPassword, req) 
   if (!user) throw { statusCode: 404, message: req.t('user.not_found') }
 
   const valid = await bcrypt.compare(currentPassword, user.password)
-  if (!valid) throw { statusCode: 401, message: req.t('auth.invalid_credentials') }
+  if (!valid) throw { statusCode: 400, message: req.t('auth.current_password_wrong') }
 
   const hashed = await bcrypt.hash(newPassword, 12)
   await db.update(users).set({ password: hashed }).where(eq(users.id, userId))
@@ -171,8 +172,7 @@ export async function changePassword(userId, currentPassword, newPassword, req) 
 async function notifySuperAdminsOfRegistration(pharmacy, admin) {
   // In-app first: it must exist even if the email fails
   await notifySuperAdmins({
-    title:   `🆕 Nouvelle inscription : ${pharmacy.name}`,
-    message: `${admin.name} (${admin.email})${pharmacy.city ? ` · ${pharmacy.city}` : ''} — essai gratuit démarré.`,
+    ...notif('new_registration', { pharmacy: pharmacy.name, admin: admin.name, email: admin.email, city: pharmacy.city }),
     type:    'SUCCESS',
     link:    '/super/pharmacies',
     pharmacyId: pharmacy.id,

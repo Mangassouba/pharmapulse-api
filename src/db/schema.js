@@ -492,6 +492,8 @@ export const notifications = pgTable('notifications', {
   title:      text('title').notNull(),
   message:    text('message').notNull(),
   type:       text('type').notNull(),
+  key:        text('key'),     // i18n key (notif.<key>.title/message) — title/message keep the French text as fallback
+  params:     jsonb('params'), // values for the key, rendered in the reader's language
   is_read:    boolean('is_read').notNull().default(false),
   createdAt:  createdAt(),
   updatedAt:  updatedAt(),
@@ -511,6 +513,8 @@ export const superAdminNotifications = pgTable('super_admin_notifications', {
   message:    text('message').notNull(),
   type:       text('type').notNull().default('INFO'), // INFO | SUCCESS | WARNING | ERROR
   link:       text('link'),                           // front route opened on click, e.g. /super/pharmacies
+  key:        text('key'),     // same i18n scheme as notifications
+  params:     jsonb('params'),
   is_read:    boolean('is_read').notNull().default(false),
   createdAt:  createdAt(),
   pharmacyId: integer('pharmacyId'),

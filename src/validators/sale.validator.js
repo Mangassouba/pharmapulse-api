@@ -1,10 +1,10 @@
 import { body } from 'express-validator'
 
 export const saleValidator = [
-  body('items').isArray({ min: 1 }).withMessage('At least one item required'),
-  body('items.*.productId').isInt({ min: 1 }).withMessage('Valid product required'),
-  body('items.*.quantity').isFloat({ min: 0.01 }).withMessage('Quantity must be > 0'),
-  body('items.*.price').isFloat({ min: 0 }).withMessage('Price must be >= 0'),
+  body('items').isArray({ min: 1 }).withMessage('validation.at_least_one_item'),
+  body('items.*.productId').isInt({ min: 1 }).withMessage('validation.select'),
+  body('items.*.quantity').isFloat({ min: 0.01 }).withMessage('validation.above_zero'),
+  body('items.*.price').isFloat({ min: 0 }).withMessage('validation.min_zero'),
   body('items.*.batchId').optional().isInt({ min: 1 }),
   body('items.*.discount').optional().isFloat({ min: 0 }),
   body('customer').optional().trim().isLength({ max: 100 }),

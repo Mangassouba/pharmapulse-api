@@ -1,9 +1,21 @@
 import logger from '../config/logger.js'
 import { errorResponse } from '../utils/response.js'
 import { pgError } from '../db/helpers.js'
+import { i18next } from '../i18n/index.js'
+
+// Unique constraint → message telling the user which value is already taken
+const UNIQUE_MESSAGES = {
+  users_email_pharmacyId_key:      'auth.email_taken',
+  pharmacy_license_number_key:     'pharmacy.license_taken',
+  products_barcode_pharmacyId_key: 'product.barcode_taken',
+  category_name_key:               'category.name_taken',
+  batches_number_pharmacyId_key:   'batch.number_taken',
+}
 
 export function errorHandler(err, req, res, next) {
   logger.error(err)
+  // Error raised before the i18n middleware ran (e.g. CORS): fall back to the default language
+  if (typeof req.t !== 'function') req.t = i18next.getFixedT('fr')
 
   // PostgreSQL constraint errors
   const pgErr = pgError(err)
@@ -11,17 +23,13 @@ export function errorHandler(err, req, res, next) {
     // unique_violation
     if (pgErr.code === '23505') {
       return errorResponse(res, {
-        message: req.t('error.conflict'),
-        errors: pgErr.constraint,
+        message: req.t(UNIQUE_MESSAGES[pgErr.constraint] ?? 'error.conflict'),
         statusCode: 409,
       })
     }
     // foreign_key_violation
     if (pgErr.code === '23503') {
-      return errorResponse(res, {
-        message: req.t('error.bad_request') + ': foreign key constraint',
-        statusCode: 400,
-      })
+      return errorResponse(res, { message: req.t('error.linked_data'), statusCode: 409 })
     }
   }
 
@@ -39,12 +47,18 @@ export function errorHandler(err, req, res, next) {
     return errorResponse(res, { message: req.t('auth.token_invalid'), statusCode: 401 })
   }
 
-  // Default
+  // Malformed / too large request body (express.json)
+  if (err.type === 'entity.parse.failed' || err.type === 'entity.too.large') {
+    return errorResponse(res, { message: req.t('error.bad_request'), statusCode: err.status || 400 })
+  }
+
+  // Errors thrown on purpose ({ statusCode: 4xx, message }) are meant for the user: show them as-is.
+  // Unexpected errors only show their technical message outside production.
+  const statusCode = err.statusCode || err.status || 500
+  const expected   = statusCode < 500 && err.message
   return errorResponse(res, {
-    message: process.env.NODE_ENV === 'production'
-      ? req.t('error.internal')
-      : err.message,
-    statusCode: err.statusCode || 500,
+    message: expected || process.env.NODE_ENV !== 'production' && err.message || req.t('error.internal'),
+    statusCode,
   })
 }
 

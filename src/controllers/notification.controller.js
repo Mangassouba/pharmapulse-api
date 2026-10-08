@@ -2,6 +2,7 @@ import { eq, and, or, isNull, desc, count } from 'drizzle-orm'
 import db from '../config/database.js'
 import { notifications } from '../db/schema.js'
 import { successResponse, paginatedResponse, getPaginationParams } from '../utils/response.js'
+import { localizeNotification } from '../utils/notification.js'
 
 const visibleTo = (user) => and(
   eq(notifications.pharmacyId, user.pharmacyId),
@@ -16,7 +17,7 @@ export async function list(req, res, next) {
       db.query.notifications.findMany({ where, offset: skip, limit: take, orderBy: [desc(notifications.createdAt)] }),
       db.select({ total: count() }).from(notifications).where(where),
     ])
-    return paginatedResponse(res, { message: req.t('notification.list_success'), data: rows, total, page, pageSize })
+    return paginatedResponse(res, { message: req.t('notification.list_success'), data: rows.map(r => localizeNotification(r, req)), total, page, pageSize })
   } catch (err) { next(err) }
 }
 

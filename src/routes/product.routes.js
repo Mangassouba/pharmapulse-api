@@ -26,7 +26,7 @@ router.put('/:id',    authorize('ADMIN','MANAGER','STOCK_MANAGER'), productValid
 
 // PUT  /api/products/:id/image — upload the product image as a data URL (PNG, JPEG or WebP, max 512 KB)
 router.put('/:id/image', authorize('ADMIN','MANAGER','STOCK_MANAGER'),
-  body('image').isString().withMessage('Image requise'), validate, ctrl.updateImage)
+  body('image').isString().withMessage('validation.required'), validate, ctrl.updateImage)
 
 // DELETE /api/products/:id/image — remove the product image
 router.delete('/:id/image', authorize('ADMIN','MANAGER','STOCK_MANAGER'), ctrl.deleteImage)

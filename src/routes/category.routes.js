@@ -8,7 +8,7 @@ const router = Router()
 router.use(authenticate)
 
 const categoryValidator = [
-  body('name').trim().notEmpty().withMessage('Category name required').isLength({ max: 100 }),
+  body('name').trim().notEmpty().withMessage('validation.required').isLength({ max: 100 }),
   body('description').optional().trim().isLength({ max: 255 }),
 ]
 

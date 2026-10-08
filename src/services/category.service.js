@@ -53,7 +53,7 @@ export async function deleteCategory(id, userId, pharmacyId, req) {
   // Check if products use this category
   const [{ total }] = await db.select({ total: count() }).from(products)
     .where(and(eq(products.categoryId, id), isNull(products.deletedAt)))
-  if (total > 0) throw { statusCode: 409, message: `Cannot delete: ${total} products use this category` }
+  if (total > 0) throw { statusCode: 409, message: req.t('category.in_use', { count: total }) }
 
   await db.update(category).set({ deletedAt: new Date() }).where(eq(category.id, id))
 

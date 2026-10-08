@@ -9,6 +9,7 @@ import { pharmacy, pharmacyLogos, products, productImages, siteVisits, users, or
 import { contains, withCounts } from '../db/helpers.js'
 import { sendImage } from '../utils/image.js'
 import { getSiteLogo, getSiteName } from '../services/site.service.js'
+import { notif } from '../utils/notification.js'
 
 const router = Router()
 
@@ -78,7 +79,7 @@ router.get('/pharmacies', async (req, res, next) => {
 router.get('/pharmacies/:id', async (req, res, next) => {
   try {
     const [ph] = await findPublicPharmacies(and(eq(pharmacy.id, parseInt(req.params.id)), activePharmacy))
-    if (!ph) return res.status(404).json({ success: false, message: 'Pharmacie introuvable.' })
+    if (!ph) return res.status(404).json({ success: false, message: req.t('pharmacy.not_found') })
     res.json({ success: true, data: ph })
   } catch (err) { next(err) }
 })
@@ -92,7 +93,7 @@ const VISITOR_ID = /^[A-Za-z0-9-]{16,64}$/
 router.post('/visit', async (req, res, next) => {
   try {
     const { visitorId } = req.body || {}
-    if (!VISITOR_ID.test(visitorId || '')) return res.status(400).json({ success: false, message: 'visitorId invalide.' })
+    if (!VISITOR_ID.test(visitorId || '')) return res.status(400).json({ success: false, message: req.t('error.bad_request') })
 
     // Counted once per browser per day (UTC = heure de Nouakchott)
     const day = new Date().toISOString().slice(0, 10)
@@ -104,7 +105,7 @@ router.post('/visit', async (req, res, next) => {
 router.get('/pharmacies/:id/logo', async (req, res, next) => {
   try {
     const logo = await db.query.pharmacyLogos.findFirst({ where: eq(pharmacyLogos.pharmacyId, parseInt(req.params.id)) })
-    if (!logo) return res.status(404).json({ success: false, message: 'Logo introuvable.' })
+    if (!logo) return res.status(404).json({ success: false, message: req.t('public.logo_not_found') })
 
     sendImage(res, logo, !!req.query.v)
   } catch (err) { next(err) }
@@ -124,7 +125,7 @@ router.get('/site', async (req, res, next) => {
 router.get('/site/logo', async (req, res, next) => {
   try {
     const logo = await getSiteLogo()
-    if (!logo) return res.status(404).json({ success: false, message: 'Logo introuvable.' })
+    if (!logo) return res.status(404).json({ success: false, message: req.t('public.logo_not_found') })
     sendImage(res, logo.value, !!req.query.v)
   } catch (err) { next(err) }
 })
@@ -166,7 +167,7 @@ router.get('/pharmacies/:id/products', async (req, res, next) => {
 router.get('/products/:id/image', async (req, res, next) => {
   try {
     const image = await db.query.productImages.findFirst({ where: eq(productImages.productId, parseInt(req.params.id)) })
-    if (!image) return res.status(404).json({ success: false, message: 'Image introuvable.' })
+    if (!image) return res.status(404).json({ success: false, message: req.t('public.image_not_found') })
 
     sendImage(res, image, !!req.query.v)
   } catch (err) { next(err) }
@@ -234,16 +235,16 @@ router.post('/orders', async (req, res, next) => {
     const { customerName, customerPhone, customerEmail, pharmacyId, items, note } = req.body
 
     // Validations
-    if (!customerName?.trim())  return res.status(422).json({ success: false, message: 'Nom du client obligatoire.' })
-    if (!customerPhone?.trim()) return res.status(422).json({ success: false, message: 'Téléphone obligatoire.' })
-    if (!pharmacyId)            return res.status(422).json({ success: false, message: 'Pharmacie non spécifiée.' })
-    if (!items?.length)         return res.status(422).json({ success: false, message: 'Au moins un article requis.' })
+    if (!customerName?.trim())  return res.status(422).json({ success: false, message: req.t('validation.required', { field: req.t('fields.customer') }) })
+    if (!customerPhone?.trim()) return res.status(422).json({ success: false, message: req.t('validation.required', { field: req.t('fields.phone') }) })
+    if (!pharmacyId)            return res.status(422).json({ success: false, message: req.t('public.pharmacy_missing') })
+    if (!items?.length)         return res.status(422).json({ success: false, message: req.t('validation.at_least_one_item') })
 
     // Pharmacie active ?
     const ph = await db.query.pharmacy.findFirst({
       where: and(eq(pharmacy.id, parseInt(pharmacyId)), activePharmacy),
     })
-    if (!ph) return res.status(404).json({ success: false, message: 'Pharmacie introuvable ou inactive.' })
+    if (!ph) return res.status(404).json({ success: false, message: req.t('public.pharmacy_unavailable') })
 
     // Vérifier stock
     const errors = []
@@ -251,8 +252,8 @@ router.post('/orders', async (req, res, next) => {
       const prod = await db.query.products.findFirst({
         where: and(eq(products.id, item.productId), eq(products.pharmacyId, parseInt(pharmacyId)), isNull(products.deletedAt)),
       })
-      if (!prod)               { errors.push(`Produit introuvable (ID: ${item.productId}).`); continue }
-      if (prod.stock < item.quantity) errors.push(`"${prod.name}" : seulement ${prod.stock} en stock.`)
+      if (!prod)               { errors.push(req.t('public.product_missing', { id: item.productId })); continue }
+      if (prod.stock < item.quantity) errors.push(req.t('order.only_in_stock', { name: prod.name, stock: prod.stock }))
     }
     if (errors.length) return res.status(422).json({ success: false, message: errors.join(' ') })
 
@@ -292,8 +293,7 @@ router.post('/orders', async (req, res, next) => {
     // Notifier la pharmacie (dans son panel)
     await db.insert(notifications).values({
       pharmacyId: parseInt(pharmacyId),
-      title:   `🛒 Commande en ligne — ${pickup_code}`,
-      message: `${customerName} · ${totalAmount.toLocaleString('fr-FR')} MRU · Code : ${pickup_code}. À préparer.`,
+      ...notif('online_order', { code: pickup_code, customer: customerName, amount: totalAmount }),
       type:    'INFO',
     })
 
@@ -329,7 +329,7 @@ router.get('/orders/:code', async (req, res, next) => {
       where: eq(orders.pickup_code, code),
       with:  orderPublicWith,
     })
-    if (!order) return res.status(404).json({ success: false, message: 'Code invalide ou commande introuvable.' })
+    if (!order) return res.status(404).json({ success: false, message: req.t('public.code_invalid') })
 
     const expired  = order.pickup_expires_at && new Date(order.pickup_expires_at) < new Date()
     const statusLabel = {

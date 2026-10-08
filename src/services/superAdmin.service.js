@@ -10,6 +10,7 @@ import { signToken, signResetToken, decodeResetToken, verifyResetToken } from '.
 import { sendMail, passwordResetEmail } from '../config/mailer.js'
 import { getPaginationParams } from '../utils/response.js'
 import { parseImageDataUrl } from '../utils/image.js'
+import { notif } from '../utils/notification.js'
 import { getSiteName, setSiteName, setSiteLogo, removeSiteLogo } from './site.service.js'
 import { subscriptionAmount, DEFAULT_PLAN, CURRENCY, MONTHLY_PRICE, TRIAL_DAYS } from '../utils/subscription.js'
 
@@ -17,10 +18,10 @@ import { subscriptionAmount, DEFAULT_PLAN, CURRENCY, MONTHLY_PRICE, TRIAL_DAYS }
 
 export async function superAdminLogin(email, password, req) {
   const admin = await db.query.superAdmins.findFirst({ where: eq(superAdmins.email, email) })
-  if (!admin || !admin.is_active) throw { statusCode: 401, message: 'Identifiants incorrects ou compte inactif.' }
+  if (!admin || !admin.is_active) throw { statusCode: 401, message: req.t('super.invalid_credentials') }
 
   const valid = await bcrypt.compare(password, admin.password)
-  if (!valid) throw { statusCode: 401, message: 'Identifiants incorrects.' }
+  if (!valid) throw { statusCode: 401, message: req.t('super.invalid_credentials') }
 
   await db.update(superAdmins).set({ last_login: new Date() }).where(eq(superAdmins.id, admin.id))
   await logAction(admin.id, 'LOGIN', 'Connexion au panel SuperAdmin', null, null, req)
@@ -48,7 +49,7 @@ export async function requestSuperAdminPasswordReset(email, req) {
 }
 
 export async function resetSuperAdminPassword(token, newPassword, req) {
-  const invalid = { statusCode: 400, message: 'Lien de réinitialisation invalide ou expiré.' }
+  const invalid = { statusCode: 400, message: req.t('auth.reset_token_invalid') }
 
   const payload = decodeResetToken(token)
   if (payload?.purpose !== SUPER_RESET_PURPOSE || !payload.id) throw invalid
@@ -268,10 +269,9 @@ export async function updatePharmacyStatus(id, status, reason, adminId, req) {
   // Notify pharmacy admin
   await db.insert(notifications).values({
     pharmacyId: id,
-    title: isActive ? '✅ Pharmacie réactivée' : '⚠️ Pharmacie suspendue',
-    message: isActive
-      ? `Votre pharmacie a été réactivée. Vous pouvez à nouveau utiliser ${await getSiteName()}.`
-      : `Votre pharmacie a été suspendue. Raison: ${reason || 'Non précisée'}. Contactez le support.`,
+    ...(isActive
+      ? notif('pharmacy_reactivated', { site: await getSiteName() })
+      : notif('pharmacy_suspended', { reason: reason || null })),
     type: isActive ? 'SUCCESS' : 'ERROR',
   })
 
@@ -368,8 +368,8 @@ export async function renewSubscription(pharmacyId, data, adminId, req) {
     // Notify
     await tx.insert(notifications).values({
       pharmacyId,
-      title:   sub ? '✅ Abonnement renouvelé' : '✅ Abonnement activé',
-      message: `Votre abonnement de ${months} mois (${newAmount} ${CURRENCY}) est ${sub ? 'renouvelé' : 'activé'} jusqu'au ${newEnd.toLocaleDateString('fr-FR')}.`,
+      ...notif(sub ? 'subscription_renewed' : 'subscription_activated',
+        { months, amount: newAmount, currency: CURRENCY, end_date: newEnd }),
       type:    'SUCCESS',
     })
 

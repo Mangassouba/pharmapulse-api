@@ -7,9 +7,9 @@ import logger from '../config/logger.js'
  * Add a notification to the SuperAdmin panel. Never throws: a notification
  * must not make the action that triggered it fail (registration, job…).
  */
-export async function notifySuperAdmins({ title, message, type = 'INFO', link = null, pharmacyId = null }) {
+export async function notifySuperAdmins({ title, message, key = null, params = null, type = 'INFO', link = null, pharmacyId = null }) {
   try {
-    await db.insert(superAdminNotifications).values({ title, message, type, link, pharmacyId })
+    await db.insert(superAdminNotifications).values({ title, message, key, params, type, link, pharmacyId })
   } catch (err) {
     logger.error(`Notification SuperAdmin non créée (${title}): ${err.message}`)
   }

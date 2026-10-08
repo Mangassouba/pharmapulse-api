@@ -57,6 +57,13 @@
       "when": 1791382755773,
       "tag": "0007_site_visits",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791496189346,
+      "tag": "0008_notification_i18n",
+      "breakpoints": true
     }
   ]
 }

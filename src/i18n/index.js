@@ -26,3 +26,6 @@ await i18next
   })
 
 export { i18next, middleware }
+
+/** Intl locale for dates/numbers in the request language (req.language) */
+export const intlLocale = lng => ({ en: 'en-GB', ar: 'ar-u-nu-latn' })[String(lng || '').slice(0, 2)] ?? 'fr-FR'

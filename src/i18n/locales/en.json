@@ -14,7 +14,11 @@
     "password_mismatch": "Passwords do not match",
     "reset_link_sent": "If an account exists for this email, a reset link has been sent",
     "reset_success": "Password reset, you can now log in",
-    "reset_token_invalid": "Invalid or expired reset link"
+    "reset_token_invalid": "Invalid or expired reset link",
+    "current_password_wrong": "The current password is incorrect.",
+    "pharmacy_suspended": "Your pharmacy is suspended for non-payment. Contact your administrator.",
+    "pharmacy_disabled": "Your pharmacy is disabled. Contact {{site}} support.",
+    "subscription_expired": "Your subscription has expired. Renew it to keep using the app."
   },
   "pharmacy": {
     "created": "Pharmacy created successfully",
@@ -37,7 +41,8 @@
     "updated": "Category updated",
     "deleted": "Category deleted",
     "not_found": "Category not found",
-    "name_taken": "This category name already exists"
+    "name_taken": "This category name already exists",
+    "in_use": "This category cannot be deleted: {{count}} product(s) still use it. Change their category first."
   },
   "sale": {
     "created": "Sale recorded successfully",
@@ -61,11 +66,17 @@
     "updated": "Order updated",
     "cancelled": "Order cancelled",
     "not_found": "Order not found",
-    "list_success": "Orders retrieved"
+    "list_success": "Orders retrieved",
+    "code_invalid": "Invalid code or order not found for this pharmacy.",
+    "code_expired": "This code expired on {{date}}.",
+    "already_picked_up": "This order has already been picked up and validated.",
+    "was_cancelled": "This order has been cancelled.",
+    "only_in_stock": "\"{{name}}\": only {{stock}} in stock.",
+    "pickup_validated": "Order {{code}} validated successfully."
   },
   "batch": {
     "number_other_product": "This batch number already exists for another product",
-    "not_available":"This batch is not available for this product (depleted, expired or not found)",
+    "not_available": "This batch is not available for this product (depleted, expired or not found)",
     "created": "Batch created successfully",
     "updated": "Batch updated",
     "deleted": "Batch deleted",
@@ -92,7 +103,8 @@
     "not_found": "User not found",
     "list_success": "Users retrieved",
     "password_changed": "Password changed successfully",
-    "profile_updated": "Profile updated"
+    "profile_updated": "Profile updated",
+    "cannot_delete_self": "You cannot delete your own account."
   },
   "notification": {
     "list_success": "Notifications retrieved",
@@ -103,23 +115,166 @@
     "success": "Dashboard data retrieved"
   },
   "validation": {
-    "required": "Field {{field}} is required",
-    "invalid_email": "Invalid email address",
-    "min_length": "{{field}} must be at least {{min}} characters",
-    "max_length": "{{field}} must not exceed {{max}} characters",
-    "min_value": "{{field}} must be greater than or equal to {{min}}",
-    "invalid_type": "Invalid value type for {{field}}",
-    "positive": "{{field}} must be a positive number"
+    "required": "\"{{field}}\" is required.",
+    "invalid_email": "\"{{field}}\" is not a valid email address.",
+    "password_min": "The password must be at least 6 characters long.",
+    "select": "Please choose \"{{field}}\".",
+    "min_zero": "\"{{field}}\" must be a number greater than or equal to 0.",
+    "above_zero": "\"{{field}}\" must be greater than 0.",
+    "invalid_choice": "The value chosen for \"{{field}}\" is not valid.",
+    "invalid_date": "\"{{field}}\" is not a valid date.",
+    "at_least_one_item": "Add at least one product.",
+    "expiry_required_with_batch": "The expiry date is required when a batch number is entered.",
+    "invalid_time": "\"{{field}}\" must be a time in HH:MM format (e.g. 08:30).",
+    "duty_both_or_none": "Enter both the duty start and end time, or neither.",
+    "duty_same_time": "The duty start and end time must be different.",
+    "location_both_or_none": "Enter both latitude and longitude, or neither.",
+    "invalid": "The value of \"{{field}}\" is not valid.",
+    "max_length_60": "\"{{field}}\" must not exceed 60 characters.",
+    "line": "Line {{n}} – {{field}}",
+    "summary": "Please fix: {{list}}"
   },
   "error": {
-    "internal": "Internal server error",
-    "not_found": "Resource not found",
-    "bad_request": "Bad request",
-    "conflict": "Data conflict",
-    "validation": "Validation error",
-    "rate_limit": "Too many requests, please try again later"
+    "internal": "An unexpected error occurred. Try again in a moment; if it keeps happening, contact support.",
+    "not_found": "The requested item could not be found. It may have been deleted.",
+    "bad_request": "The request is incomplete or incorrect. Check the information you entered.",
+    "conflict": "This information already exists. Use a different value.",
+    "validation": "Some of the information entered is incorrect.",
+    "rate_limit": "Too many attempts. Wait a few minutes and try again.",
+    "linked_data": "Action not possible: this item is used elsewhere (sales, batches, receptions…)."
   },
   "pagination": {
     "success": "Data retrieved"
+  },
+  "fields": {
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "token": "Link",
+    "phone": "Phone",
+    "address": "Address",
+    "pharmacyName": "Pharmacy name",
+    "pharmacyEmail": "Pharmacy email",
+    "pharmacyCity": "City",
+    "pharmacyCountry": "Country",
+    "adminName": "Admin name",
+    "adminEmail": "Admin email",
+    "adminPassword": "Admin password",
+    "trialDays": "Trial days",
+    "dutyDays": "Duty days",
+    "dutyStart": "Duty start time",
+    "dutyEnd": "Duty end time",
+    "latitude": "Latitude",
+    "longitude": "Longitude",
+    "logo": "Logo",
+    "image": "Image",
+    "categoryId": "Category",
+    "description": "Description",
+    "barcode": "Barcode",
+    "sale_price": "Sale price",
+    "purchase_price": "Purchase price",
+    "stock": "Stock",
+    "threshold": "Alert threshold",
+    "unit_type": "Unit type",
+    "subunit_type": "Sub-unit type",
+    "unit_quantity": "Qty per unit",
+    "is_divisible": "Divisible",
+    "prescription_req": "Prescription required",
+    "productId": "Product",
+    "quantity": "Quantity",
+    "initial_quantity": "Initial quantity",
+    "price": "Price",
+    "number": "Batch number",
+    "batchNumber": "Batch number",
+    "batchId": "Batch",
+    "expiration_date": "Expiry date",
+    "expirationDate": "Expiry date",
+    "manufacturing_date": "Manufacturing date",
+    "supplier": "Supplier",
+    "invoice_number": "Invoice number",
+    "items": "Products",
+    "notes": "Notes",
+    "customer": "Customer name",
+    "customer_phone": "Customer phone",
+    "customer_email": "Customer email",
+    "delivery_date": "Delivery date",
+    "payment_method": "Payment method",
+    "method": "Payment method",
+    "discount": "Discount",
+    "tax": "Tax",
+    "role": "Role",
+    "status": "Status",
+    "months": "Duration",
+    "reason": "Reason",
+    "reference": "Reference"
+  },
+  "public": {
+    "logo_not_found": "Logo not found.",
+    "image_not_found": "Image not found.",
+    "pharmacy_missing": "No pharmacy was chosen for this order.",
+    "pharmacy_unavailable": "This pharmacy cannot be found or is not accepting orders right now.",
+    "product_missing": "A product in your cart no longer exists (ref. {{id}}). Remove it and try again.",
+    "code_invalid": "Invalid code or order not found."
+  },
+  "super": {
+    "invalid_credentials": "Incorrect email or password, or account disabled.",
+    "invalid_duration": "The duration must be {{list}} months.",
+    "notification_read": "Notification marked as read",
+    "notifications_all_read": "All notifications marked as read",
+    "site_name_updated": "Site name updated",
+    "site_logo_updated": "Site logo updated",
+    "site_logo_deleted": "Site logo deleted",
+    "pharmacy_activated": "Pharmacy activated successfully",
+    "pharmacy_suspended": "Pharmacy suspended successfully",
+    "subscription_renewed": "Subscription renewed successfully"
+  },
+  "notif": {
+    "no_reason": "Not specified",
+    "trial_ending_tomorrow": {
+      "title": "⏳ Trial period ending",
+      "message": "Your free trial ends tomorrow. Contact us to activate your subscription."
+    },
+    "trial_ending": {
+      "title": "⏳ Trial period ending",
+      "message": "Your free trial ends in {{days}} days. Contact us to activate your subscription."
+    },
+    "super_trial_ending_tomorrow": {
+      "title": "⏳ Trial ends tomorrow: {{pharmacy}}",
+      "message": "The free trial ends on {{end_date}}. The pharmacy has been notified by email."
+    },
+    "super_trial_ending": {
+      "title": "⏳ Trial ends in {{days}} days: {{pharmacy}}",
+      "message": "The free trial ends on {{end_date}}. The pharmacy has been notified by email."
+    },
+    "order_picked_up": {
+      "title": "✅ Order {{code}} validated",
+      "message": "Pickup by {{customer}} confirmed — {{amount}} MRU."
+    },
+    "online_order": {
+      "title": "🛒 Online order — {{code}}",
+      "message": "{{customer}} · {{amount}} MRU · Code: {{code}}. To prepare."
+    },
+    "pharmacy_reactivated": {
+      "title": "✅ Pharmacy reactivated",
+      "message": "Your pharmacy has been reactivated. You can use {{site}} again."
+    },
+    "pharmacy_suspended": {
+      "title": "⚠️ Pharmacy suspended",
+      "message": "Your pharmacy has been suspended. Reason: {{reason}}. Contact support."
+    },
+    "subscription_renewed": {
+      "title": "✅ Subscription renewed",
+      "message": "Your {{months}}-month subscription ({{amount}} {{currency}}) is renewed until {{end_date}}."
+    },
+    "subscription_activated": {
+      "title": "✅ Subscription activated",
+      "message": "Your {{months}}-month subscription ({{amount}} {{currency}}) is active until {{end_date}}."
+    },
+    "new_registration": {
+      "title": "🆕 New sign-up: {{pharmacy}}",
+      "message": "{{admin}} ({{email}}){{city_suffix}} — free trial started."
+    }
   }
 }

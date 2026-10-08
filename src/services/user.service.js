@@ -82,7 +82,7 @@ export async function updateUser(id, pharmacyId, requesterId, data, req) {
 export async function deleteUser(id, pharmacyId, requesterId, req) {
   const user = await db.query.users.findFirst({ where: activeUser(id, pharmacyId) })
   if (!user) throw { statusCode: 404, message: req.t('user.not_found') }
-  if (id === requesterId) throw { statusCode: 400, message: 'Cannot delete yourself' }
+  if (id === requesterId) throw { statusCode: 400, message: req.t('user.cannot_delete_self') }
 
   await db.update(users).set({ deletedAt: new Date() }).where(eq(users.id, id))
 

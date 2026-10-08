@@ -10,8 +10,8 @@ const router = Router()
  * SuperAdmin login (separate from pharmacy login)
  */
 router.post('/login', [
-  body('email').isEmail().withMessage('Email invalide'),
-  body('password').notEmpty().withMessage('Mot de passe requis'),
+  body('email').isEmail().withMessage('validation.invalid_email'),
+  body('password').notEmpty().withMessage('validation.required'),
 ], validate, login)
 
 /**
@@ -19,7 +19,7 @@ router.post('/login', [
  * Email a password reset link (generic response, never reveals whether the account exists)
  */
 router.post('/forgot-password', [
-  body('email').isEmail().withMessage('Email invalide'),
+  body('email').isEmail().withMessage('validation.invalid_email'),
 ], validate, forgotPassword)
 
 /**
@@ -27,8 +27,8 @@ router.post('/forgot-password', [
  * Set a new password from a reset link token
  */
 router.post('/reset-password', [
-  body('token').notEmpty().withMessage('Lien invalide'),
-  body('newPassword').isLength({ min: 6 }).withMessage('Le mot de passe doit contenir au moins 6 caractères'),
+  body('token').notEmpty().withMessage('validation.invalid'),
+  body('newPassword').isLength({ min: 6 }).withMessage('validation.password_min'),
 ], validate, resetPassword)
 
 export default router

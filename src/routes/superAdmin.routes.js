@@ -42,7 +42,7 @@ router.patch('/notifications/:id/read', ctrl.markNotificationRead)
  * Public read: GET /api/public/site
  */
 router.put('/site', [
-  body('name').optional({ values: 'null' }).isString().trim().isLength({ max: 60 }).withMessage('Le nom ne doit pas dépasser 60 caractères'),
+  body('name').optional({ values: 'null' }).isString().trim().isLength({ max: 60 }).withMessage('validation.max_length_60'),
 ], validate, ctrl.updateSiteName)
 
 /**
@@ -51,7 +51,7 @@ router.put('/site', [
  * Public read: GET /api/public/site/logo
  */
 router.put('/site/logo', [
-  body('logo').isString().withMessage('Logo requis'),
+  body('logo').isString().withMessage('validation.required'),
 ], validate, ctrl.updateSiteLogo)
 router.delete('/site/logo', ctrl.deleteSiteLogo)
 
@@ -64,10 +64,10 @@ router.delete('/site/logo', ctrl.deleteSiteLogo)
 router.get('/pharmacies', ctrl.listPharmacies)
 
 router.post('/pharmacies', [
-  body('pharmacyName').trim().notEmpty().withMessage('Nom pharmacie requis'),
-  body('adminName').trim().notEmpty().withMessage('Nom admin requis'),
-  body('adminEmail').isEmail().withMessage('Email admin invalide'),
-  body('adminPassword').isLength({ min: 6 }).withMessage('Mot de passe min. 6 caractères'),
+  body('pharmacyName').trim().notEmpty().withMessage('validation.required'),
+  body('adminName').trim().notEmpty().withMessage('validation.required'),
+  body('adminEmail').isEmail().withMessage('validation.invalid_email'),
+  body('adminPassword').isLength({ min: 6 }).withMessage('validation.password_min'),
   body('trialDays').optional().isInt({ min: 0 }),
 ], validate, ctrl.createPharmacy)
 
@@ -85,7 +85,7 @@ router.delete('/pharmacies/:id', ctrl.deletePharmacy)
  * Activate / Suspend / Deactivate
  */
 router.patch('/pharmacies/:id/status', [
-  body('status').isIn(['ACTIVE','SUSPENDED','INACTIVE','PENDING']).withMessage('Statut invalide'),
+  body('status').isIn(['ACTIVE','SUSPENDED','INACTIVE','PENDING']).withMessage('validation.invalid_choice'),
   body('reason').optional().trim().isLength({ max: 500 }),
 ], validate, ctrl.setPharmacyStatus)
 
@@ -96,7 +96,7 @@ router.patch('/pharmacies/:id/status', [
  * Renew/upgrade subscription + record payment
  */
 router.post('/pharmacies/:pharmacyId/renew', [
-  body('months').isIn(DURATIONS).withMessage(`Durée invalide (${DURATIONS.join(', ')} mois)`).toInt(),
+  body('months').isIn(DURATIONS).withMessage((v, { req }) => req.t('super.invalid_duration', { list: DURATIONS.join(', ') })).toInt(),
   body('method').optional().isIn(['CASH','CARD','TRANSFER','MOBILE_MONEY']),
   body('reference').optional().trim(),
 ], validate, ctrl.renewSubscription)

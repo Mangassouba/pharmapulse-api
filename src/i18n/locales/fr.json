@@ -14,7 +14,11 @@
     "password_mismatch": "Les mots de passe ne correspondent pas",
     "reset_link_sent": "Si un compte existe pour cet email, un lien de réinitialisation a été envoyé",
     "reset_success": "Mot de passe réinitialisé, vous pouvez vous connecter",
-    "reset_token_invalid": "Lien de réinitialisation invalide ou expiré"
+    "reset_token_invalid": "Lien de réinitialisation invalide ou expiré",
+    "current_password_wrong": "Le mot de passe actuel est incorrect.",
+    "pharmacy_suspended": "Votre pharmacie est suspendue pour non-paiement. Contactez votre administrateur.",
+    "pharmacy_disabled": "Votre pharmacie est désactivée. Contactez le support {{site}}.",
+    "subscription_expired": "Votre abonnement a expiré. Renouvelez-le pour continuer à utiliser l’application."
   },
   "pharmacy": {
     "created": "Pharmacie créée avec succès",
@@ -37,7 +41,8 @@
     "updated": "Catégorie mise à jour",
     "deleted": "Catégorie supprimée",
     "not_found": "Catégorie introuvable",
-    "name_taken": "Ce nom de catégorie existe déjà"
+    "name_taken": "Ce nom de catégorie existe déjà",
+    "in_use": "Impossible de supprimer cette catégorie : {{count}} produit(s) l’utilisent encore. Changez d’abord leur catégorie."
   },
   "sale": {
     "created": "Vente enregistrée avec succès",
@@ -61,11 +66,17 @@
     "updated": "Commande mise à jour",
     "cancelled": "Commande annulée",
     "not_found": "Commande introuvable",
-    "list_success": "Commandes récupérées"
+    "list_success": "Commandes récupérées",
+    "code_invalid": "Code invalide ou commande introuvable pour cette pharmacie.",
+    "code_expired": "Ce code a expiré le {{date}}.",
+    "already_picked_up": "Cette commande a déjà été récupérée et validée.",
+    "was_cancelled": "Cette commande a été annulée.",
+    "only_in_stock": "« {{name}} » : seulement {{stock}} en stock.",
+    "pickup_validated": "Commande {{code}} validée avec succès."
   },
   "batch": {
     "number_other_product": "Ce numéro de lot existe déjà pour un autre produit",
-    "not_available":"Ce lot n'est pas disponible pour ce produit (épuisé, expiré ou introuvable)",
+    "not_available": "Ce lot n'est pas disponible pour ce produit (épuisé, expiré ou introuvable)",
     "created": "Lot créé avec succès",
     "updated": "Lot mis à jour",
     "deleted": "Lot supprimé",
@@ -92,7 +103,8 @@
     "not_found": "Utilisateur introuvable",
     "list_success": "Utilisateurs récupérés",
     "password_changed": "Mot de passe modifié avec succès",
-    "profile_updated": "Profil mis à jour"
+    "profile_updated": "Profil mis à jour",
+    "cannot_delete_self": "Vous ne pouvez pas supprimer votre propre compte."
   },
   "notification": {
     "list_success": "Notifications récupérées",
@@ -103,23 +115,166 @@
     "success": "Données du tableau de bord récupérées"
   },
   "validation": {
-    "required": "Le champ {{field}} est obligatoire",
-    "invalid_email": "Email invalide",
-    "min_length": "{{field}} doit contenir au moins {{min}} caractères",
-    "max_length": "{{field}} ne doit pas dépasser {{max}} caractères",
-    "min_value": "{{field}} doit être supérieur ou égal à {{min}}",
-    "invalid_type": "Type de valeur invalide pour {{field}}",
-    "positive": "{{field}} doit être un nombre positif"
+    "required": "« {{field}} » est obligatoire.",
+    "invalid_email": "« {{field}} » n'est pas une adresse email valide.",
+    "password_min": "Le mot de passe doit contenir au moins 6 caractères.",
+    "select": "Veuillez choisir « {{field}} ».",
+    "min_zero": "« {{field}} » doit être un nombre supérieur ou égal à 0.",
+    "above_zero": "« {{field}} » doit être supérieur à 0.",
+    "invalid_choice": "La valeur choisie pour « {{field}} » n'est pas valide.",
+    "invalid_date": "« {{field}} » n'est pas une date valide.",
+    "at_least_one_item": "Ajoutez au moins un produit.",
+    "expiry_required_with_batch": "La date d'expiration est obligatoire quand un numéro de lot est saisi.",
+    "invalid_time": "« {{field}} » doit être une heure au format HH:MM (ex. 08:30).",
+    "duty_both_or_none": "Renseignez l'heure de début et l'heure de fin de garde, ou aucune des deux.",
+    "duty_same_time": "L'heure de début et l'heure de fin de garde doivent être différentes.",
+    "location_both_or_none": "Renseignez la latitude et la longitude, ou aucune des deux.",
+    "invalid": "La valeur de « {{field}} » n'est pas valide.",
+    "max_length_60": "« {{field}} » ne doit pas dépasser 60 caractères.",
+    "line": "Ligne {{n}} – {{field}}",
+    "summary": "Veuillez corriger : {{list}}"
   },
   "error": {
-    "internal": "Erreur interne du serveur",
-    "not_found": "Ressource introuvable",
-    "bad_request": "Requête invalide",
-    "conflict": "Conflit de données",
-    "validation": "Erreur de validation",
-    "rate_limit": "Trop de requêtes, veuillez réessayer plus tard"
+    "internal": "Une erreur inattendue est survenue. Réessayez dans un instant ; si le problème continue, contactez le support.",
+    "not_found": "L'élément demandé est introuvable. Il a peut-être été supprimé.",
+    "bad_request": "La demande est incomplète ou incorrecte. Vérifiez les informations saisies.",
+    "conflict": "Cette information existe déjà. Utilisez une autre valeur.",
+    "validation": "Certaines informations saisies sont incorrectes.",
+    "rate_limit": "Trop de tentatives. Patientez quelques minutes puis réessayez.",
+    "linked_data": "Action impossible : cet élément est utilisé ailleurs (ventes, lots, réceptions…)."
   },
   "pagination": {
     "success": "Données récupérées"
+  },
+  "fields": {
+    "name": "Nom",
+    "email": "Email",
+    "password": "Mot de passe",
+    "currentPassword": "Mot de passe actuel",
+    "newPassword": "Nouveau mot de passe",
+    "token": "Lien",
+    "phone": "Téléphone",
+    "address": "Adresse",
+    "pharmacyName": "Nom de la pharmacie",
+    "pharmacyEmail": "Email de la pharmacie",
+    "pharmacyCity": "Ville",
+    "pharmacyCountry": "Pays",
+    "adminName": "Nom de l'administrateur",
+    "adminEmail": "Email de l'administrateur",
+    "adminPassword": "Mot de passe de l'administrateur",
+    "trialDays": "Jours d'essai",
+    "dutyDays": "Jours de garde",
+    "dutyStart": "Heure de début de garde",
+    "dutyEnd": "Heure de fin de garde",
+    "latitude": "Latitude",
+    "longitude": "Longitude",
+    "logo": "Logo",
+    "image": "Image",
+    "categoryId": "Catégorie",
+    "description": "Description",
+    "barcode": "Code-barres",
+    "sale_price": "Prix de vente",
+    "purchase_price": "Prix d'achat",
+    "stock": "Stock",
+    "threshold": "Seuil d'alerte",
+    "unit_type": "Type d'unité",
+    "subunit_type": "Type de sous-unité",
+    "unit_quantity": "Qté par unité",
+    "is_divisible": "Divisible",
+    "prescription_req": "Ordonnance requise",
+    "productId": "Produit",
+    "quantity": "Quantité",
+    "initial_quantity": "Quantité initiale",
+    "price": "Prix",
+    "number": "Numéro de lot",
+    "batchNumber": "Numéro de lot",
+    "batchId": "Lot",
+    "expiration_date": "Date d'expiration",
+    "expirationDate": "Date d'expiration",
+    "manufacturing_date": "Date de fabrication",
+    "supplier": "Fournisseur",
+    "invoice_number": "N° de facture",
+    "items": "Produits",
+    "notes": "Remarques",
+    "customer": "Nom du client",
+    "customer_phone": "Téléphone du client",
+    "customer_email": "Email du client",
+    "delivery_date": "Date de livraison",
+    "payment_method": "Mode de paiement",
+    "method": "Mode de paiement",
+    "discount": "Remise",
+    "tax": "Taxe",
+    "role": "Rôle",
+    "status": "Statut",
+    "months": "Durée",
+    "reason": "Motif",
+    "reference": "Référence"
+  },
+  "public": {
+    "logo_not_found": "Logo introuvable.",
+    "image_not_found": "Image introuvable.",
+    "pharmacy_missing": "Aucune pharmacie n'a été choisie pour cette commande.",
+    "pharmacy_unavailable": "Cette pharmacie est introuvable ou n'accepte pas de commandes pour le moment.",
+    "product_missing": "Un produit de votre panier n'existe plus (réf. {{id}}). Retirez-le puis réessayez.",
+    "code_invalid": "Code invalide ou commande introuvable."
+  },
+  "super": {
+    "invalid_credentials": "Email ou mot de passe incorrect, ou compte désactivé.",
+    "invalid_duration": "La durée doit être de {{list}} mois.",
+    "notification_read": "Notification marquée comme lue",
+    "notifications_all_read": "Toutes les notifications sont marquées comme lues",
+    "site_name_updated": "Nom du site mis à jour",
+    "site_logo_updated": "Logo du site mis à jour",
+    "site_logo_deleted": "Logo du site supprimé",
+    "pharmacy_activated": "Pharmacie activée avec succès",
+    "pharmacy_suspended": "Pharmacie suspendue avec succès",
+    "subscription_renewed": "Abonnement renouvelé avec succès"
+  },
+  "notif": {
+    "no_reason": "Non précisée",
+    "trial_ending_tomorrow": {
+      "title": "⏳ Fin de la période d'essai",
+      "message": "Votre essai gratuit se termine demain. Contactez-nous pour activer votre abonnement."
+    },
+    "trial_ending": {
+      "title": "⏳ Fin de la période d'essai",
+      "message": "Votre essai gratuit se termine dans {{days}} jours. Contactez-nous pour activer votre abonnement."
+    },
+    "super_trial_ending_tomorrow": {
+      "title": "⏳ Fin d'essai demain : {{pharmacy}}",
+      "message": "L'essai gratuit se termine le {{end_date}}. La pharmacie a été prévenue par email."
+    },
+    "super_trial_ending": {
+      "title": "⏳ Fin d'essai dans {{days}} jours : {{pharmacy}}",
+      "message": "L'essai gratuit se termine le {{end_date}}. La pharmacie a été prévenue par email."
+    },
+    "order_picked_up": {
+      "title": "✅ Commande {{code}} validée",
+      "message": "Retrait de {{customer}} confirmé — {{amount}} MRU."
+    },
+    "online_order": {
+      "title": "🛒 Commande en ligne — {{code}}",
+      "message": "{{customer}} · {{amount}} MRU · Code : {{code}}. À préparer."
+    },
+    "pharmacy_reactivated": {
+      "title": "✅ Pharmacie réactivée",
+      "message": "Votre pharmacie a été réactivée. Vous pouvez à nouveau utiliser {{site}}."
+    },
+    "pharmacy_suspended": {
+      "title": "⚠️ Pharmacie suspendue",
+      "message": "Votre pharmacie a été suspendue. Raison : {{reason}}. Contactez le support."
+    },
+    "subscription_renewed": {
+      "title": "✅ Abonnement renouvelé",
+      "message": "Votre abonnement de {{months}} mois ({{amount}} {{currency}}) est renouvelé jusqu'au {{end_date}}."
+    },
+    "subscription_activated": {
+      "title": "✅ Abonnement activé",
+      "message": "Votre abonnement de {{months}} mois ({{amount}} {{currency}}) est activé jusqu'au {{end_date}}."
+    },
+    "new_registration": {
+      "title": "🆕 Nouvelle inscription : {{pharmacy}}",
+      "message": "{{admin}} ({{email}}){{city_suffix}} — essai gratuit démarré."
+    }
   }
 }

@@ -7,6 +7,8 @@ import { eq, and, isNull } from 'drizzle-orm'
 import db from '../config/database.js'
 import { orders, products, stockMovements, notifications, users } from '../db/schema.js'
 import { createSaleFromOrder } from '../services/sale.service.js'
+import { intlLocale } from '../i18n/index.js'
+import { notif } from '../utils/notification.js'
 import { consumeBatches, movementParts } from '../services/batch.service.js'
 
 const PAYMENT_METHODS = ['CASH', 'CARD', 'TRANSFER', 'INSURANCE']
@@ -41,7 +43,7 @@ router.get('/verify/:code', async (req, res, next) => {
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: 'Code invalide ou commande introuvable pour cette pharmacie.'
+        message: req.t('order.code_invalid')
       })
     }
 
@@ -50,7 +52,7 @@ router.get('/verify/:code', async (req, res, next) => {
     if (expired && order.status !== 'COMPLETED') {
       return res.status(410).json({
         success: false,
-        message: `Ce code a expiré le ${new Date(order.pickup_expires_at).toLocaleDateString('fr-FR')}.`,
+        message: req.t('order.code_expired', { date: new Date(order.pickup_expires_at).toLocaleDateString(intlLocale(req.language)) }),
         data: { pickup_code: order.pickup_code, status: order.status, expired: true }
       })
     }
@@ -59,7 +61,7 @@ router.get('/verify/:code', async (req, res, next) => {
     if (order.pickup_code_used || order.status === 'COMPLETED') {
       return res.status(409).json({
         success: false,
-        message: 'Cette commande a déjà été récupérée et validée.',
+        message: req.t('order.already_picked_up'),
         data: { pickup_code: order.pickup_code, status: order.status, already_used: true }
       })
     }
@@ -68,7 +70,7 @@ router.get('/verify/:code', async (req, res, next) => {
     if (order.status === 'CANCELLED') {
       return res.status(409).json({
         success: false,
-        message: 'Cette commande a été annulée.',
+        message: req.t('order.was_cancelled'),
         data: { pickup_code: order.pickup_code, status: order.status }
       })
     }
@@ -111,16 +113,16 @@ router.patch('/:id/validate-pickup', authorize('ADMIN','MANAGER','CAISSIER'), as
       with: { details: { with: { product: true } } }
     })
 
-    if (!order)                                     return res.status(404).json({ success:false, message:'Commande introuvable.'       })
-    if (order.pickup_code_used || order.status === 'COMPLETED') return res.status(409).json({ success:false, message:'Déjà validée.'             })
-    if (order.status === 'CANCELLED')               return res.status(409).json({ success:false, message:'Commande annulée.'           })
+    if (!order)                                     return res.status(404).json({ success:false, message: req.t('order.not_found') })
+    if (order.pickup_code_used || order.status === 'COMPLETED') return res.status(409).json({ success:false, message: req.t('order.already_picked_up') })
+    if (order.status === 'CANCELLED')               return res.status(409).json({ success:false, message: req.t('order.was_cancelled') })
 
     // Pour commandes ONLINE: vérifier stock
     if (order.source === 'ONLINE') {
       const errors = []
       for (const d of order.details) {
         if (d.product.stock < d.quantity)
-          errors.push(`"${d.product.name}" : seulement ${d.product.stock} en stock.`)
+          errors.push(req.t('order.only_in_stock', { name: d.product.name, stock: d.product.stock }))
       }
       if (errors.length) return res.status(422).json({ success: false, message: errors.join(' ') })
     }
@@ -168,8 +170,7 @@ router.patch('/:id/validate-pickup', authorize('ADMIN','MANAGER','CAISSIER'), as
       // Notification
       await tx.insert(notifications).values({
         pharmacyId,
-        title:   `✅ Commande ${order.pickup_code} validée`,
-        message: `Retrait de ${order.customer} confirmé — ${Number(order.total_amount||0).toLocaleString('fr-FR')} MRU.`,
+        ...notif('order_picked_up', { code: order.pickup_code, customer: order.customer, amount: Number(order.total_amount || 0) }),
         type:    'SUCCESS'
       })
 
@@ -180,7 +181,7 @@ router.patch('/:id/validate-pickup', authorize('ADMIN','MANAGER','CAISSIER'), as
 
     res.json({
       success: true,
-      message: `Commande ${order.pickup_code} validée avec succès.`,
+      message: req.t('order.pickup_validated', { code: order.pickup_code }),
       data: { ...updated, validator: validator ?? null, sale: { id: sale.id, invoice_number: sale.invoice_number } },
     })
   } catch (err) { next(err) }

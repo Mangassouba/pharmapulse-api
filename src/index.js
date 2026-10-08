@@ -7,6 +7,7 @@ import morgan from 'morgan'
 import rateLimit from 'express-rate-limit'
 import { middleware as i18nMiddleware, i18next } from './i18n/index.js'
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js'
+import { errorResponse } from './utils/response.js'
 import { authenticate, requireActivePharmacy } from './middlewares/auth.js'
 import { verifyToken } from './config/jwt.js'
 import logger from './config/logger.js'
@@ -72,28 +73,33 @@ function rateLimitKey(req) {
   return `ip:${req.ip}`
 }
 
+// ── i18n (before rate limits and parsing, so their errors are translated) ─────
+app.use(i18nMiddleware.handle(i18next))
+
+// Rate-limit answer in the API's JSON format, in the user's language
+const tooManyRequests = (req, res) => errorResponse(res, { message: req.t('error.rate_limit'), statusCode: 429 })
+
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
   max:      parseInt(process.env.RATE_LIMIT_MAX)        || 300,
   keyGenerator: rateLimitKey,
   standardHeaders: true, legacyHeaders: false,
+  handler: tooManyRequests,
 })
 app.use('/api', limiter)
-app.use('/api/auth/login',         rateLimit({ windowMs: 15 * 60 * 1000, max: 20 }))
-app.use('/api/auth/register',      rateLimit({ windowMs: 60 * 60 * 1000, max: 10 }))
-app.use('/api/auth/forgot-password', rateLimit({ windowMs: 60 * 60 * 1000, max: 5 }))
-app.use('/api/auth/reset-password',  rateLimit({ windowMs: 15 * 60 * 1000, max: 10 }))
-app.use('/api/super/auth/login',   rateLimit({ windowMs: 15 * 60 * 1000, max: 10 }))
-app.use('/api/public/visit',        rateLimit({ windowMs: 60 * 60 * 1000, max: 30 }))
-app.use('/api/super/auth/forgot-password', rateLimit({ windowMs: 60 * 60 * 1000, max: 5 }))
-app.use('/api/super/auth/reset-password',  rateLimit({ windowMs: 15 * 60 * 1000, max: 10 }))
+app.use('/api/auth/login',         rateLimit({ windowMs: 15 * 60 * 1000, max: 20, handler: tooManyRequests }))
+app.use('/api/auth/register',      rateLimit({ windowMs: 60 * 60 * 1000, max: 10, handler: tooManyRequests }))
+app.use('/api/auth/forgot-password', rateLimit({ windowMs: 60 * 60 * 1000, max: 5, handler: tooManyRequests }))
+app.use('/api/auth/reset-password',  rateLimit({ windowMs: 15 * 60 * 1000, max: 10, handler: tooManyRequests }))
+app.use('/api/super/auth/login',   rateLimit({ windowMs: 15 * 60 * 1000, max: 10, handler: tooManyRequests }))
+app.use('/api/public/visit',        rateLimit({ windowMs: 60 * 60 * 1000, max: 30, handler: tooManyRequests }))
+app.use('/api/super/auth/forgot-password', rateLimit({ windowMs: 60 * 60 * 1000, max: 5, handler: tooManyRequests }))
+app.use('/api/super/auth/reset-password',  rateLimit({ windowMs: 15 * 60 * 1000, max: 10, handler: tooManyRequests }))
 
 // ── Parsing ───────────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
-// ── i18n ──────────────────────────────────────────────────────────────────────
-app.use(i18nMiddleware.handle(i18next))
 
 // ── Logging ───────────────────────────────────────────────────────────────────
 if (process.env.NODE_ENV !== 'test') {

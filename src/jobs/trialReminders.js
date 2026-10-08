@@ -6,6 +6,7 @@ import { createAuditLog } from '../utils/audit.js'
 import { notifySuperAdmins } from '../services/superNotification.service.js'
 import { TRIAL_REMINDER_DAYS } from '../utils/subscription.js'
 import logger from '../config/logger.js'
+import { notif } from '../utils/notification.js'
 
 const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '')
 const INTERVAL_MS  = 60 * 60 * 1000 // hourly
@@ -63,17 +64,14 @@ export async function runTrialReminders() {
 
     await db.insert(notifications).values({
       pharmacyId: sub.pharmacyId,
-      title:   '⏳ Fin de la période d\'essai',
-      message: daysLeft <= 1
-        ? 'Votre essai gratuit se termine demain. Contactez-nous pour activer votre abonnement.'
-        : `Votre essai gratuit se termine dans ${daysLeft} jours. Contactez-nous pour activer votre abonnement.`,
+      ...notif(daysLeft <= 1 ? 'trial_ending_tomorrow' : 'trial_ending', { days: daysLeft }),
       type:    'INFO',
     })
 
     // Heads-up for the SuperAdmin, to follow up with the pharmacy before the trial ends
     await notifySuperAdmins({
-      title:   `⏳ Fin d'essai ${daysLeft <= 1 ? 'demain' : `dans ${daysLeft} jours`} : ${sub.pharmacy.name}`,
-      message: `L'essai gratuit se termine le ${new Date(sub.end_date).toLocaleDateString('fr-FR')}. La pharmacie a été prévenue par email.`,
+      ...notif(daysLeft <= 1 ? 'super_trial_ending_tomorrow' : 'super_trial_ending',
+        { days: daysLeft, pharmacy: sub.pharmacy.name, end_date: sub.end_date }),
       type:    'WARNING',
       link:    '/super/pharmacies',
       pharmacyId: sub.pharmacyId,

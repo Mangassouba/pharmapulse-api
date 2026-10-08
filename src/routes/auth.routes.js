@@ -82,7 +82,7 @@ router.put('/pharmacy/location', authenticate, authorize('ADMIN'), locationValid
  * @desc   Upload the pharmacy logo as a data URL (PNG, JPEG or WebP, max 512 KB)
  * @access Private (ADMIN)
  */
-router.put('/pharmacy/logo', authenticate, authorize('ADMIN'), body('logo').isString().withMessage('Logo requis'), validate, ctrl.updateLogo)
+router.put('/pharmacy/logo', authenticate, authorize('ADMIN'), body('logo').isString().withMessage('validation.required'), validate, ctrl.updateLogo)
 
 /**
  * @route  DELETE /api/auth/pharmacy/logo

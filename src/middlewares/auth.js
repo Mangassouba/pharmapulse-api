@@ -55,15 +55,15 @@ export async function requireActivePharmacy(req, res, next) {
 
     if (!pharmacy.is_active || pharmacy.status !== 'ACTIVE') {
       const msg = pharmacy.status === 'SUSPENDED'
-        ? 'Pharmacie suspendue pour non-paiement. Contactez votre administrateur.'
-        : `Pharmacie désactivée. Contactez le support ${await getSiteName()}.`
+        ? req.t('auth.pharmacy_suspended')
+        : req.t('auth.pharmacy_disabled', { site: await getSiteName() })
       return errorResponse(res, { message: msg, statusCode: 403 })
     }
 
     const sub = pharmacy.subscription
     if (sub && sub.status !== 'ACTIVE' && sub.status !== 'TRIAL' && new Date(sub.end_date) < new Date()) {
       return errorResponse(res, {
-        message: 'Abonnement expiré. Veuillez renouveler pour continuer.',
+        message: req.t('auth.subscription_expired'),
         statusCode: 402,
       })
     }
