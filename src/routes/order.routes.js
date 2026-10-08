@@ -7,6 +7,7 @@ import { eq, and, isNull } from 'drizzle-orm'
 import db from '../config/database.js'
 import { orders, products, stockMovements, notifications, users } from '../db/schema.js'
 import { createSaleFromOrder } from '../services/sale.service.js'
+import { consumeBatches, movementParts } from '../services/batch.service.js'
 
 const PAYMENT_METHODS = ['CASH', 'CARD', 'TRANSFER', 'INSURANCE']
 
@@ -132,17 +133,20 @@ router.patch('/:id/validate-pickup', authorize('ADMIN','MANAGER','CAISSIER'), as
           await tx.update(products)
             .set({ stock: ns, status: ns <= 0 ? 'OUT_OF_STOCK' : 'AVAILABLE' })
             .where(eq(products.id, d.product.id))
-          await tx.insert(stockMovements).values({
+          // Same FEFO batch exit as a counter sale
+          const allocations = await consumeBatches(tx, { pharmacyId, productId: d.product.id, quantity: d.quantity }, req)
+          await tx.insert(stockMovements).values(movementParts(d.quantity, allocations, d.product.stock).map(part => ({
             productId:     d.product.id,
             pharmacyId,
             userId,
+            batchId:       part.batchId,
             type:          'SALE',
-            quantity:      -d.quantity,
-            previous_stock: d.product.stock,
-            new_stock:     ns,
+            quantity:      -part.quantity,
+            previous_stock: part.previous,
+            new_stock:     Math.max(0, part.next),
             reference_id:  order.id,
             reason:        `Retrait commande en ligne ${order.pickup_code}`
-          })
+          })))
         }
       }
 

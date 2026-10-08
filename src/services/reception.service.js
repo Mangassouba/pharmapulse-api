@@ -1,4 +1,4 @@
-import { eq, and, isNull, gte, lte, desc, count, sql } from 'drizzle-orm'
+import { eq, and, isNull, gte, lte, desc, count, sql, inArray } from 'drizzle-orm'
 import db from '../config/database.js'
 import { products, batches, receptions, receptionDetails, stockMovements } from '../db/schema.js'
 import { contains } from '../db/helpers.js'
@@ -21,24 +21,22 @@ export async function createReception(pharmacyId, userId, data, req) {
       const lineTotal = item.quantity * parseFloat(item.price)
       totalAmount += lineTotal
 
-      // Create or update batch if batch number provided
+      // Link the line to its batch. Quantities only enter the batch when the reception is validated.
       let batchId = null
       if (item.batchNumber && item.expirationDate) {
         const existing = await tx.query.batches.findFirst({
-          where: and(eq(batches.number, item.batchNumber), eq(batches.pharmacyId, pharmacyId)),
+          where: and(eq(batches.number, item.batchNumber), eq(batches.pharmacyId, pharmacyId), isNull(batches.deletedAt)),
         })
         if (existing) {
-          await tx.update(batches)
-            .set({ quantity: sql`${batches.quantity} + ${item.quantity}` })
-            .where(eq(batches.id, existing.id))
+          if (existing.productId !== item.productId) throw { statusCode: 409, message: req.t('batch.number_other_product') }
           batchId = existing.id
         } else {
           const [batch] = await tx.insert(batches).values({
             number:           item.batchNumber,
             productId:        item.productId,
             pharmacyId,
-            quantity:         item.quantity,
-            initial_quantity: item.quantity,
+            quantity:         0,
+            initial_quantity: 0,
             expiration_date:  new Date(item.expirationDate),
             unit_type:        item.unit_type || null,
             unit_quantity:    item.unit_quantity || null,
@@ -95,13 +93,46 @@ export async function completeReception(id, pharmacyId, userId, status, req) {
     with: { details: true },
   })
   if (!reception) throw { statusCode: 404, message: req.t('reception.not_found') }
-  if (reception.status === 'COMPLETED') throw { statusCode: 409, message: 'Reception already completed' }
+  const alreadyProcessed = { statusCode: 409, message: req.t('reception.already_processed') }
+  if (reception.status !== 'PENDING') throw alreadyProcessed
 
   await db.transaction(async (tx) => {
-    await tx.update(receptions).set({ status }).where(eq(receptions.id, id))
+    // Only a PENDING reception can be processed, once (also guards against a double click)
+    const [claimed] = await tx.update(receptions).set({ status })
+      .where(and(eq(receptions.id, id), eq(receptions.status, 'PENDING')))
+      .returning({ id: receptions.id })
+    if (!claimed) throw alreadyProcessed
+
+    if (status === 'CANCELLED') {
+      // Drop batches this reception created that never received anything and no other pending reception uses
+      const batchIds = [...new Set(reception.details.map(d => d.batchId).filter(Boolean))]
+      if (batchIds.length) {
+        await tx.update(batches)
+          .set({ deletedAt: new Date() })
+          .where(and(
+            inArray(batches.id, batchIds),
+            eq(batches.initial_quantity, 0),
+            sql`not exists (
+              select 1 from ${receptionDetails} rd join ${receptions} r on r.id = rd."receptionId"
+              where rd."batchId" = ${batches.id} and r.id <> ${id} and r.status = 'PENDING'
+            )`,
+          ))
+      }
+    }
 
     if (status === 'COMPLETED' || status === 'PARTIAL') {
       for (const detail of reception.details) {
+        if (detail.batchId) {
+          await tx.update(batches)
+            .set({
+              quantity:         sql`${batches.quantity} + ${detail.quantity}`,
+              initial_quantity: sql`${batches.initial_quantity} + ${detail.quantity}`,
+              // A batch emptied by sales becomes usable again once refilled
+              status:           sql`case when ${batches.status} = 'DEPLETED' then 'ACTIVE'::"BatchStatus" else ${batches.status} end`,
+            })
+            .where(eq(batches.id, detail.batchId))
+        }
+
         const product = await tx.query.products.findFirst({ where: eq(products.id, detail.productId) })
         const newStock = (product?.stock || 0) + detail.quantity
 

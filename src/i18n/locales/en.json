@@ -52,6 +52,7 @@
     "updated": "Reception updated",
     "deleted": "Reception cancelled",
     "not_found": "Reception not found",
+    "already_processed": "This reception has already been processed (validated, partial or cancelled)",
     "completed": "Reception completed, stocks updated",
     "list_success": "Receptions retrieved"
   },
@@ -63,6 +64,8 @@
     "list_success": "Orders retrieved"
   },
   "batch": {
+    "number_other_product": "This batch number already exists for another product",
+    "not_available":"This batch is not available for this product (depleted, expired or not found)",
     "created": "Batch created successfully",
     "updated": "Batch updated",
     "deleted": "Batch deleted",

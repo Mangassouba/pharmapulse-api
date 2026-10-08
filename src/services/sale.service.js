@@ -1,10 +1,11 @@
 import { eq, and, or, isNull, gte, lte, inArray, desc, count, sum, sql } from 'drizzle-orm'
 import db from '../config/database.js'
-import { products, batches, sales, saleDetails, stockMovements } from '../db/schema.js'
+import { products, sales, saleDetails, stockMovements } from '../db/schema.js'
 import { contains } from '../db/helpers.js'
 import { getPaginationParams } from '../utils/response.js'
 import { createAuditLog } from '../utils/audit.js'
 import { generateInvoiceNumber } from '../utils/invoice.js'
+import { consumeBatches, movementParts } from './batch.service.js'
 
 export async function createSale(pharmacyId, userId, data, req) {
   const { items, customer, customer_phone, customer_email, payment_method, discount = 0, tax = 0 } = data
@@ -36,14 +37,22 @@ export async function createSale(pharmacyId, userId, data, req) {
   const invoiceNumber = generateInvoiceNumber('VTE')
 
   const saleId = await db.transaction(async (tx) => {
+    // Take each line out of its batches, earliest expiry first
+    const allocations = []
+    for (const item of items) {
+      allocations.push(await consumeBatches(tx, {
+        pharmacyId, productId: item.productId, quantity: item.quantity, preferredBatchId: item.batchId,
+      }, req))
+    }
+
     // Calculate totals
     let subtotal = 0
-    const detailsData = items.map(item => {
+    const detailsData = items.map((item, i) => {
       const lineTotal = item.quantity * parseFloat(item.price) - parseFloat(item.discount || 0)
       subtotal += lineTotal
       return {
         productId: item.productId,
-        batchId:   item.batchId || null,
+        batchId:   allocations[i][0]?.batchId ?? null, // main batch; the per-batch split is in stockMovements
         quantity:  item.quantity,
         price:     parseFloat(item.price),
         discount:  parseFloat(item.discount || 0),
@@ -72,8 +81,8 @@ export async function createSale(pharmacyId, userId, data, req) {
 
     await tx.insert(saleDetails).values(detailsData.map(d => ({ ...d, saleId: newSale.id })))
 
-    // Update stock + create movements for each item
-    for (const item of items) {
+    // Update stock + one movement per batch used (plus one for any untracked remainder)
+    for (const [i, item] of items.entries()) {
       const product = productMap[item.productId]
       const newStock = product.stock - item.quantity
 
@@ -84,26 +93,19 @@ export async function createSale(pharmacyId, userId, data, req) {
         })
         .where(eq(products.id, item.productId))
 
-      await tx.insert(stockMovements).values({
+      await tx.insert(stockMovements).values(movementParts(item.quantity, allocations[i], product.stock).map(part => ({
         productId:      item.productId,
         pharmacyId,
         userId,
-        batchId:        item.batchId || null,
+        batchId:        part.batchId,
         type:           'SALE',
-        quantity:       -item.quantity,
-        previous_stock: product.stock,
-        new_stock:      newStock,
+        quantity:       -part.quantity,
+        previous_stock: part.previous,
+        new_stock:      part.next,
         reference_id:   newSale.id,
         reason:         `Vente ${invoiceNumber}`,
         unit_type:      item.unit_type || null,
-      })
-
-      // Update batch quantity if specified
-      if (item.batchId) {
-        await tx.update(batches)
-          .set({ quantity: sql`${batches.quantity} - ${item.quantity}` })
-          .where(eq(batches.id, item.batchId))
-      }
+      })))
     }
 
     return newSale.id

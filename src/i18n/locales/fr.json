@@ -52,6 +52,7 @@
     "updated": "Réception mise à jour",
     "deleted": "Réception annulée",
     "not_found": "Réception introuvable",
+    "already_processed": "Cette réception a déjà été traitée (validée, partielle ou annulée)",
     "completed": "Réception complétée, stocks mis à jour",
     "list_success": "Réceptions récupérées"
   },
@@ -63,6 +64,8 @@
     "list_success": "Commandes récupérées"
   },
   "batch": {
+    "number_other_product": "Ce numéro de lot existe déjà pour un autre produit",
+    "not_available":"Ce lot n'est pas disponible pour ce produit (épuisé, expiré ou introuvable)",
     "created": "Lot créé avec succès",
     "updated": "Lot mis à jour",
     "deleted": "Lot supprimé",

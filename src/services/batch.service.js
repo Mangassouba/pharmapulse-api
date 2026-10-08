@@ -1,4 +1,4 @@
-import { eq, and, isNull, gte, lte, lt, asc, count } from 'drizzle-orm'
+import { eq, and, isNull, gte, lte, lt, gt, asc, count, sql } from 'drizzle-orm'
 import db from '../config/database.js'
 import { batches } from '../db/schema.js'
 import { toRow } from '../db/helpers.js'
@@ -92,4 +92,57 @@ export async function checkAndUpdateExpiredBatches(pharmacyId) {
     ))
     .returning({ id: batches.id })
   return updated.length
+}
+
+/**
+ * Take `quantity` of a product out of its batches, earliest expiry first (FEFO).
+ * `preferredBatchId` (optional) is used first and must be an available batch of this pharmacy/product.
+ * Only active, unexpired batches are used; whatever they cannot cover stays untracked.
+ * Must run inside the stock-exit transaction (rows are locked FOR UPDATE).
+ * Returns [{ batchId, quantity }] in consumption order.
+ */
+export async function consumeBatches(tx, { pharmacyId, productId, quantity, preferredBatchId = null }, req) {
+  const available = await tx.select({ id: batches.id, quantity: batches.quantity })
+    .from(batches)
+    .where(and(
+      eq(batches.pharmacyId, pharmacyId),
+      eq(batches.productId, productId),
+      eq(batches.status, 'ACTIVE'),
+      isNull(batches.deletedAt),
+      gt(batches.quantity, 0),
+      gte(batches.expiration_date, new Date()),
+    ))
+    .orderBy(asc(batches.expiration_date), asc(batches.id))
+    .for('update')
+
+  if (preferredBatchId) {
+    const i = available.findIndex(b => b.id === Number(preferredBatchId))
+    if (i === -1) throw { statusCode: 422, message: req.t('batch.not_available') }
+    available.unshift(...available.splice(i, 1))
+  }
+
+  const allocations = []
+  let remaining = quantity
+  for (const batch of available) {
+    if (remaining <= 0) break
+    const take = Math.min(remaining, batch.quantity)
+    await tx.update(batches)
+      .set({ quantity: sql`${batches.quantity} - ${take}`, ...(take >= batch.quantity ? { status: 'DEPLETED' } : {}) })
+      .where(eq(batches.id, batch.id))
+    allocations.push({ batchId: batch.id, quantity: take })
+    remaining -= take
+  }
+  return allocations
+}
+
+/**
+ * Split a stock exit of `quantity` into one part per batch allocation (+ any untracked remainder),
+ * with the running product stock before/after each part — one stock movement per part.
+ */
+export function movementParts(quantity, allocations, startStock) {
+  const parts   = allocations.map(a => ({ batchId: a.batchId, quantity: a.quantity }))
+  const tracked = parts.reduce((s, p) => s + p.quantity, 0)
+  if (quantity - tracked > 0 || !parts.length) parts.push({ batchId: null, quantity: quantity - tracked })
+  let stock = startStock
+  return parts.map(p => ({ ...p, previous: stock, next: (stock -= p.quantity) }))
 }
