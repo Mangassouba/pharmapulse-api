@@ -80,6 +80,9 @@ router.get   ('/pharmacies/:id', ctrl.getPharmacy)
 router.put   ('/pharmacies/:id', ctrl.updatePharmacy)
 router.delete('/pharmacies/:id', ctrl.deletePharmacy)
 
+/** POST /api/super/pharmacies/:id/restore — undo a deletion */
+router.post('/pharmacies/:id/restore', ctrl.restorePharmacy)
+
 /**
  * PATCH /api/super/pharmacies/:id/status
  * Activate / Suspend / Deactivate

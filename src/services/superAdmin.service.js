@@ -1,9 +1,9 @@
 import bcrypt from 'bcryptjs'
-import { eq, and, or, isNull, gte, lte, inArray, desc, count, countDistinct, sum, sql } from 'drizzle-orm'
+import { eq, ne, and, or, isNull, isNotNull, gte, lte, inArray, desc, count, countDistinct, sum, sql } from 'drizzle-orm'
 import db from '../config/database.js'
 import {
   superAdmins, superAdminLogs, pharmacy as pharmacyTable, users, products, sales, receptions,
-  category, subscriptions, subscriptionPayments, notifications, siteVisits,
+  category, subscriptions, subscriptionPayments, notifications, siteVisits, auditLogs,
 } from '../db/schema.js'
 import { contains, withCounts, accountExistsForPharmacyName } from '../db/helpers.js'
 import { signToken, signResetToken, decodeResetToken, verifyResetToken } from '../config/jwt.js'
@@ -149,10 +149,10 @@ async function getVisitorStats() {
 
 export async function listPharmacies(query) {
   const { page, pageSize, skip, take } = getPaginationParams(query)
-  const { search, status } = query
+  const { search, status, deleted } = query
 
   const where = and(
-    isNull(pharmacyTable.deletedAt),
+    deleted === 'true' ? isNotNull(pharmacyTable.deletedAt) : isNull(pharmacyTable.deletedAt),
     search ? contains(pharmacyTable.name, search) : undefined,
     status ? eq(pharmacyTable.status, status) : undefined,
   )
@@ -161,7 +161,7 @@ export async function listPharmacies(query) {
     db.query.pharmacy.findMany({
       where, offset: skip, limit: take,
       with: { subscription: { columns: { plan: true, status: true, end_date: true } } },
-      orderBy: [desc(pharmacyTable.createdAt)],
+      orderBy: [deleted === 'true' ? desc(pharmacyTable.deletedAt) : desc(pharmacyTable.createdAt)],
     }),
     countWhere(pharmacyTable, where),
   ])
@@ -322,13 +322,74 @@ export async function deletePharmacy(id, confirmName, adminId, req) {
     await tx.update(pharmacyTable)
       .set({ deletedAt: new Date(), status: 'INACTIVE', is_active: false })
       .where(eq(pharmacyTable.id, id))
-    return tx.update(users)
+    const accounts = await tx.update(users)
       .set({ status: 'INACTIVE' })
-      .where(and(eq(users.pharmacyId, id), isNull(users.deletedAt)))
+      .where(and(eq(users.pharmacyId, id), isNull(users.deletedAt), eq(users.status, 'ACTIVE')))
       .returning({ id: users.id })
+    // What a restore must put back: only the accounts this deletion deactivated, and the previous status
+    await tx.insert(auditLogs).values({
+      action: DELETE_SNAPSHOT, entity: 'pharmacy', entity_id: id, pharmacyId: id,
+      old_values: { status: pharmacy.status, is_active: pharmacy.is_active, userIds: accounts.map(a => a.id) },
+    })
+    return accounts
   })
   await logAction(adminId, 'DELETE_PHARMACY',
     `Pharmacie supprimée: ${pharmacy.name} (${deactivated.length} compte(s) désactivé(s))`, 'pharmacy', id, req)
+}
+
+const DELETE_SNAPSHOT = 'DELETE_PHARMACY'
+
+/**
+ * Undo deletePharmacy: the pharmacy comes back with its previous status, and only the accounts the
+ * deletion deactivated are reactivated. Refused if one of its emails now has an account in another
+ * live pharmacy with the same name (signed up again after the deletion).
+ */
+export async function restorePharmacy(id, adminId, req) {
+  const pharmacy = await db.query.pharmacy.findFirst({ where: and(eq(pharmacyTable.id, id), isNotNull(pharmacyTable.deletedAt)) })
+  if (!pharmacy) throw { statusCode: 404, message: req.t('super.restore_not_deleted') }
+
+  const conflict = await db.select({ email: users.email }).from(users)
+    .innerJoin(pharmacyTable, eq(users.pharmacyId, pharmacyTable.id))
+    .where(and(
+      ne(pharmacyTable.id, id),
+      isNull(pharmacyTable.deletedAt),
+      isNull(users.deletedAt),
+      sql`lower(trim(${pharmacyTable.name})) = lower(trim(${pharmacy.name}))`,
+      sql`lower(trim(${users.email})) in (select lower(trim(u.email)) from ${users} u where u."pharmacyId" = ${id} and u."deletedAt" is null)`,
+    ))
+    .limit(1)
+  if (conflict.length) throw { statusCode: 409, message: req.t('super.restore_conflict', { email: conflict[0].email }) }
+
+  const [snapshot] = await db.select({ values: auditLogs.old_values }).from(auditLogs)
+    .where(and(eq(auditLogs.action, DELETE_SNAPSHOT), eq(auditLogs.entity, 'pharmacy'), eq(auditLogs.entity_id, id)))
+    .orderBy(desc(auditLogs.createdAt), desc(auditLogs.id))
+    .limit(1)
+
+  const reactivated = await db.transaction(async (tx) => {
+    await tx.update(pharmacyTable)
+      .set({
+        deletedAt: null,
+        status:    snapshot?.values?.status ?? 'ACTIVE',
+        is_active: snapshot?.values?.is_active ?? true,
+      })
+      .where(eq(pharmacyTable.id, id))
+
+    // Deleted before snapshots existed: its accounts were deactivated in the same instant as the
+    // pharmacy (within a few seconds of deletedAt); accounts already inactive before stay inactive.
+    const deletedAt = new Date(pharmacy.deletedAt).getTime()
+    const userFilter = snapshot?.values?.userIds
+      ? (snapshot.values.userIds.length ? inArray(users.id, snapshot.values.userIds) : sql`false`)
+      : and(gte(users.updatedAt, new Date(deletedAt - 5000)), lte(users.updatedAt, new Date(deletedAt + 5000)))
+
+    return tx.update(users)
+      .set({ status: 'ACTIVE' })
+      .where(and(eq(users.pharmacyId, id), isNull(users.deletedAt), eq(users.status, 'INACTIVE'), userFilter))
+      .returning({ id: users.id })
+  })
+
+  await logAction(adminId, 'RESTORE_PHARMACY',
+    `Pharmacie restaurée: ${pharmacy.name} (${reactivated.length} compte(s) réactivé(s))`, 'pharmacy', id, req)
+  return { reactivated: reactivated.length }
 }
 
 // ── Subscriptions management ──────────────────────────────────────────────────

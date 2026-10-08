@@ -129,6 +129,13 @@ export async function deletePharmacy(req, res, next) {
   } catch (err) { next(err) }
 }
 
+export async function restorePharmacy(req, res, next) {
+  try {
+    const data = await svc.restorePharmacy(parseInt(req.params.id), req.user.id, req)
+    return successResponse(res, { message: req.t('super.pharmacy_restored', { count: data.reactivated }), data })
+  } catch (err) { next(err) }
+}
+
 // ── Subscriptions ─────────────────────────────────────────────────────────────
 
 export async function renewSubscription(req, res, next) {

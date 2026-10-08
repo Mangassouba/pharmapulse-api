@@ -230,7 +230,10 @@
     "pharmacy_activated": "Pharmacy activated successfully",
     "pharmacy_suspended": "Pharmacy suspended successfully",
     "subscription_renewed": "Subscription renewed successfully",
-    "delete_name_mismatch": "The name entered does not match the pharmacy name. Deletion cancelled."
+    "delete_name_mismatch": "The name entered does not match the pharmacy name. Deletion cancelled.",
+    "restore_not_deleted": "This pharmacy cannot be found or is not deleted.",
+    "restore_conflict": "Cannot restore: the email {{email}} already has an account in another pharmacy with the same name, created since the deletion.",
+    "pharmacy_restored": "Pharmacy restored, {{count}} account(s) reactivated."
   },
   "notif": {
     "no_reason": "Not specified",
