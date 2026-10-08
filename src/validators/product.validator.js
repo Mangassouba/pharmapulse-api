@@ -13,7 +13,9 @@ export const productValidator = [
   body('stock').optional().isFloat({ min: 0 }).withMessage('Stock must be >= 0'),
   body('unit_type').optional().isIn(UNIT_TYPES).withMessage('Invalid unit type'),
   body('subunit_type').optional().isIn(UNIT_TYPES).withMessage('Invalid subunit type'),
-  body('unit_quantity').optional().isFloat({ min: 0 }),
+  // Field left empty in the form arrives as null or '' → store null
+  body('unit_quantity').customSanitizer(v => (v === '' ? null : v)),
+  body('unit_quantity').optional({ values: 'null' }).isFloat({ min: 0 }).withMessage('Quantity per unit must be >= 0'),
   body('is_divisible').optional().isBoolean(),
   body('prescription_req').optional().isBoolean(),
 ]
