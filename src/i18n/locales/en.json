@@ -10,6 +10,7 @@
     "token_expired": "Session expired, please log in again",
     "token_invalid": "Invalid token",
     "email_taken": "This email is already used in this pharmacy",
+    "account_exists": "An account already exists with this email for a pharmacy with this name",
     "password_mismatch": "Passwords do not match",
     "reset_link_sent": "If an account exists for this email, a reset link has been sent",
     "reset_success": "Password reset, you can now log in",

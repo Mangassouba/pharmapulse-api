@@ -6,6 +6,7 @@ import { signToken, signRefreshToken, signResetToken, decodeResetToken, verifyRe
 import { sendMail, passwordResetEmail, newRegistrationEmail, welcomeEmail } from '../config/mailer.js'
 import { createAuditLog } from '../utils/audit.js'
 import { parseImageDataUrl } from '../utils/image.js'
+import { accountExistsForPharmacyName } from '../db/helpers.js'
 import { notifySuperAdmins } from './superNotification.service.js'
 import { TRIAL_DAYS, DEFAULT_PLAN, CURRENCY } from '../utils/subscription.js'
 
@@ -41,6 +42,11 @@ export async function registerPharmacyAndAdmin(data, req) {
 
   // Create pharmacy + admin in a single transaction
   const result = await db.transaction(async (tx) => {
+    // The same email cannot hold two accounts on pharmacies with the same name
+    if (await accountExistsForPharmacyName(tx, email, pharmacyName)) {
+      throw { statusCode: 409, message: req.t('auth.account_exists') }
+    }
+
     const [pharmacy] = await tx.insert(pharmacyTable).values({
       name: pharmacyName,
       email: pharmacyEmail,
@@ -50,12 +56,6 @@ export async function registerPharmacyAndAdmin(data, req) {
       country: pharmacyCountry,
       license_number: pharmacyLicense || null,
     }).returning()
-
-    // Check email uniqueness in this pharmacy
-    const userExists = await tx.query.users.findFirst({
-      where: and(eq(users.email, email), eq(users.pharmacyId, pharmacy.id)),
-    })
-    if (userExists) throw { statusCode: 409, message: req.t('auth.email_taken') }
 
     const [user] = await tx.insert(users).values({
       name,

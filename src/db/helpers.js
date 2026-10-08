@@ -1,5 +1,6 @@
-import { ilike, inArray, count, getTableColumns } from 'drizzle-orm'
+import { ilike, inArray, count, getTableColumns, and, eq, isNull, sql } from 'drizzle-orm'
 import db from '../config/database.js'
+import { pharmacy, users } from './schema.js'
 
 /** Case-insensitive "contains" (equivalent of Prisma `{ contains, mode: 'insensitive' }`) */
 export function contains(column, value) {
@@ -55,4 +56,26 @@ export function pgError(err) {
   if (err?.code && typeof err.code === 'string' && /^[0-9A-Z]{5}$/.test(err.code)) return err
   if (err?.cause) return pgError(err.cause)
   return null
+}
+
+/**
+ * True if an account with this email already exists in a pharmacy with this name
+ * (case/whitespace-insensitive). Call inside the creating transaction: the advisory lock
+ * serialises concurrent sign-ups for the same email until the transaction ends.
+ */
+export async function accountExistsForPharmacyName(tx, email, pharmacyName) {
+  const key = String(email).trim().toLowerCase()
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${'account:' + key}))`)
+  const [row] = await tx
+    .select({ id: users.id })
+    .from(users)
+    .innerJoin(pharmacy, eq(users.pharmacyId, pharmacy.id))
+    .where(and(
+      sql`lower(trim(${users.email})) = ${key}`,
+      sql`lower(trim(${pharmacy.name})) = lower(trim(${pharmacyName}))`,
+      isNull(users.deletedAt),
+      isNull(pharmacy.deletedAt),
+    ))
+    .limit(1)
+  return Boolean(row)
 }

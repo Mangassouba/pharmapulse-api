@@ -5,7 +5,7 @@ import {
   superAdmins, superAdminLogs, pharmacy as pharmacyTable, users, products, sales, receptions,
   category, subscriptions, subscriptionPayments, notifications, siteVisits,
 } from '../db/schema.js'
-import { contains, withCounts } from '../db/helpers.js'
+import { contains, withCounts, accountExistsForPharmacyName } from '../db/helpers.js'
 import { signToken, signResetToken, decodeResetToken, verifyResetToken } from '../config/jwt.js'
 import { sendMail, passwordResetEmail } from '../config/mailer.js'
 import { getPaginationParams } from '../utils/response.js'
@@ -210,6 +210,10 @@ export async function createPharmacy(data, adminId, req) {
   const trialEnd = new Date(Date.now() + trialDays * 86400000)
 
   const result = await db.transaction(async (tx) => {
+    if (await accountExistsForPharmacyName(tx, adminEmail, pharmacyName)) {
+      throw { statusCode: 409, message: req.t('auth.account_exists') }
+    }
+
     const [pharmacy] = await tx.insert(pharmacyTable).values({
       name: pharmacyName, email: pharmacyEmail, phone: pharmacyPhone,
       address: pharmacyAddress, city: pharmacyCity, country: pharmacyCountry,
