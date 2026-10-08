@@ -124,7 +124,7 @@ export async function setPharmacyStatus(req, res, next) {
 
 export async function deletePharmacy(req, res, next) {
   try {
-    await svc.deletePharmacy(parseInt(req.params.id), req.user.id, req)
+    await svc.deletePharmacy(parseInt(req.params.id), req.body?.confirmName, req.user.id, req)
     return successResponse(res, { message: req.t('pharmacy.deleted') })
   } catch (err) { next(err) }
 }

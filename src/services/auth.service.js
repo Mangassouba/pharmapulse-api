@@ -119,16 +119,20 @@ export async function registerPharmacyAndAdmin(data, req) {
 }
 
 export async function loginUser(email, password, req) {
-  const user = await db.query.users.findFirst({
+  // An email can exist in several pharmacies: prefer an account whose pharmacy still exists
+  const accounts = await db.query.users.findMany({
     where: and(eq(users.email, email), isNull(users.deletedAt)),
     with: { pharmacy: true },
   })
+  const user = accounts.find(u => !u.pharmacy?.deletedAt) ?? accounts[0]
 
   if (!user) throw { statusCode: 401, message: req.t('auth.invalid_credentials') }
-  if (user.status !== 'ACTIVE') throw { statusCode: 403, message: req.t('auth.account_inactive') }
 
   const valid = await bcrypt.compare(password, user.password)
   if (!valid) throw { statusCode: 401, message: req.t('auth.invalid_credentials') }
+  // Checked after the password, so these messages never reveal that an account exists
+  if (user.pharmacy?.deletedAt) throw { statusCode: 403, message: req.t('auth.pharmacy_deleted') }
+  if (user.status !== 'ACTIVE') throw { statusCode: 403, message: req.t('auth.account_inactive') }
 
   // Update last_login
   await db.update(users).set({ last_login: new Date() }).where(eq(users.id, user.id))

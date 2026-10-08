@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs'
-import { eq, and, or, isNull, gte, lte, inArray, desc, count, countDistinct, sum } from 'drizzle-orm'
+import { eq, and, or, isNull, gte, lte, inArray, desc, count, countDistinct, sum, sql } from 'drizzle-orm'
 import db from '../config/database.js'
 import {
   superAdmins, superAdminLogs, pharmacy as pharmacyTable, users, products, sales, receptions,
@@ -13,6 +13,9 @@ import { parseImageDataUrl } from '../utils/image.js'
 import { notif } from '../utils/notification.js'
 import { getSiteName, setSiteName, setSiteLogo, removeSiteLogo } from './site.service.js'
 import { subscriptionAmount, DEFAULT_PLAN, CURRENCY, MONTHLY_PRICE, TRIAL_DAYS } from '../utils/subscription.js'
+
+// Users whose pharmacy was not deleted (a deleted pharmacy's accounts are hidden from the platform)
+const inLivePharmacy = sql`not exists (select 1 from ${pharmacyTable} p where p.id = ${users.pharmacyId} and p."deletedAt" is not null)`
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
@@ -77,7 +80,7 @@ export async function getPlatformStats() {
     countWhere(pharmacyTable, isNull(pharmacyTable.deletedAt)),
     countWhere(pharmacyTable, and(eq(pharmacyTable.status, 'ACTIVE'), isNull(pharmacyTable.deletedAt))),
     countWhere(pharmacyTable, and(eq(pharmacyTable.status, 'SUSPENDED'), isNull(pharmacyTable.deletedAt))),
-    countWhere(users, isNull(users.deletedAt)),
+    countWhere(users, and(isNull(users.deletedAt), inLivePharmacy)),
     db.select({ sum: sum(sales.total_amount), count: count() }).from(sales),
     countWhere(subscriptions, and(
       inArray(subscriptions.status, ['ACTIVE', 'TRIAL']),
@@ -304,14 +307,28 @@ export async function updatePharmacy(id, data, adminId, req) {
   return updated
 }
 
-export async function deletePharmacy(id, adminId, req) {
-  const pharmacy = await db.query.pharmacy.findFirst({ where: eq(pharmacyTable.id, id) })
+/**
+ * Soft delete: the pharmacy and its data stay in the database (sales history), but it disappears
+ * from the platform and all its accounts are deactivated. `confirmName` must repeat its name.
+ */
+export async function deletePharmacy(id, confirmName, adminId, req) {
+  const pharmacy = await db.query.pharmacy.findFirst({ where: and(eq(pharmacyTable.id, id), isNull(pharmacyTable.deletedAt)) })
   if (!pharmacy) throw { statusCode: 404, message: req.t('pharmacy.not_found') }
+  if (String(confirmName ?? '').trim() !== pharmacy.name.trim()) {
+    throw { statusCode: 422, message: req.t('super.delete_name_mismatch') }
+  }
 
-  await db.update(pharmacyTable)
-    .set({ deletedAt: new Date(), status: 'INACTIVE', is_active: false })
-    .where(eq(pharmacyTable.id, id))
-  await logAction(adminId, 'DELETE_PHARMACY', `Pharmacie supprimée: ${pharmacy.name}`, 'pharmacy', id, req)
+  const deactivated = await db.transaction(async (tx) => {
+    await tx.update(pharmacyTable)
+      .set({ deletedAt: new Date(), status: 'INACTIVE', is_active: false })
+      .where(eq(pharmacyTable.id, id))
+    return tx.update(users)
+      .set({ status: 'INACTIVE' })
+      .where(and(eq(users.pharmacyId, id), isNull(users.deletedAt)))
+      .returning({ id: users.id })
+  })
+  await logAction(adminId, 'DELETE_PHARMACY',
+    `Pharmacie supprimée: ${pharmacy.name} (${deactivated.length} compte(s) désactivé(s))`, 'pharmacy', id, req)
 }
 
 // ── Subscriptions management ──────────────────────────────────────────────────
@@ -402,6 +419,7 @@ export async function listAllUsers(query) {
 
   const where = and(
     isNull(users.deletedAt),
+    inLivePharmacy,
     search     ? or(contains(users.name, search), contains(users.email, search)) : undefined,
     role       ? eq(users.role, role) : undefined,
     status     ? eq(users.status, status) : undefined,

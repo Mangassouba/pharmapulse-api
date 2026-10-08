@@ -18,7 +18,8 @@
     "current_password_wrong": "The current password is incorrect.",
     "pharmacy_suspended": "Your pharmacy is suspended for non-payment. Contact your administrator.",
     "pharmacy_disabled": "Your pharmacy is disabled. Contact {{site}} support.",
-    "subscription_expired": "Your subscription has expired. Renew it to keep using the app."
+    "subscription_expired": "Your subscription has expired. Renew it to keep using the app.",
+    "pharmacy_deleted": "This pharmacy has been removed from the platform. Contact support if you think this is a mistake."
   },
   "pharmacy": {
     "created": "Pharmacy created successfully",
@@ -228,7 +229,8 @@
     "site_logo_deleted": "Site logo deleted",
     "pharmacy_activated": "Pharmacy activated successfully",
     "pharmacy_suspended": "Pharmacy suspended successfully",
-    "subscription_renewed": "Subscription renewed successfully"
+    "subscription_renewed": "Subscription renewed successfully",
+    "delete_name_mismatch": "The name entered does not match the pharmacy name. Deletion cancelled."
   },
   "notif": {
     "no_reason": "Not specified",

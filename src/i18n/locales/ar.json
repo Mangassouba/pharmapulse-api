@@ -18,7 +18,8 @@
     "current_password_wrong": "كلمة المرور الحالية غير صحيحة.",
     "pharmacy_suspended": "صيدليتك معلّقة بسبب عدم الدفع. تواصل مع المسؤول.",
     "pharmacy_disabled": "صيدليتك معطّلة. تواصل مع دعم {{site}}.",
-    "subscription_expired": "انتهى اشتراكك. جدّده لمواصلة استخدام التطبيق."
+    "subscription_expired": "انتهى اشتراكك. جدّده لمواصلة استخدام التطبيق.",
+    "pharmacy_deleted": "تم حذف هذه الصيدلية من المنصة. تواصل مع الدعم إذا كنت تعتقد أن هذا خطأ."
   },
   "pharmacy": {
     "created": "تم إنشاء الصيدلية بنجاح",
@@ -228,7 +229,8 @@
     "site_logo_deleted": "تم حذف شعار الموقع",
     "pharmacy_activated": "تم تفعيل الصيدلية بنجاح",
     "pharmacy_suspended": "تم تعليق الصيدلية بنجاح",
-    "subscription_renewed": "تم تجديد الاشتراك بنجاح"
+    "subscription_renewed": "تم تجديد الاشتراك بنجاح",
+    "delete_name_mismatch": "الاسم المدخل لا يطابق اسم الصيدلية. تم إلغاء الحذف."
   },
   "notif": {
     "no_reason": "غير محدد",

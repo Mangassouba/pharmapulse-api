@@ -47,11 +47,12 @@ export async function requireActivePharmacy(req, res, next) {
   try {
     const pharmacy = await db.query.pharmacy.findFirst({
       where: eq(pharmacyTable.id, req.user.pharmacyId),
-      columns: { is_active: true, status: true },
+      columns: { is_active: true, status: true, deletedAt: true },
       with: { subscription: { columns: { status: true, end_date: true } } },
     })
 
     if (!pharmacy) return errorResponse(res, { message: req.t('pharmacy.not_found'), statusCode: 404 })
+    if (pharmacy.deletedAt) return errorResponse(res, { message: req.t('auth.pharmacy_deleted'), statusCode: 403 })
 
     if (!pharmacy.is_active || pharmacy.status !== 'ACTIVE') {
       const msg = pharmacy.status === 'SUSPENDED'
