@@ -35,7 +35,13 @@
     "not_found": "Product not found",
     "barcode_taken": "This barcode is already in use",
     "insufficient_stock": "Insufficient stock for {{name}} (available: {{available}}, requested: {{requested}})",
-    "list_success": "Products retrieved successfully"
+    "list_success": "Products retrieved successfully",
+    "import_success": "Import complete: {{created}} product(s) created, {{updated}} updated.",
+    "import_invalid": "The file has {{count}} error(s). No product was imported: fix the file and try again.",
+    "import_line": "Line {{n}}: {{message}}",
+    "import_unknown_category": "category \"{{name}}\" does not exist. Create it first or fix its name.",
+    "import_duplicate_barcode": "barcode \"{{barcode}}\" appears more than once in the file.",
+    "import_deleted_barcode": "barcode \"{{barcode}}\" belongs to a deleted product."
   },
   "category": {
     "created": "Category created",
@@ -133,7 +139,8 @@
     "invalid": "The value of \"{{field}}\" is not valid.",
     "max_length_60": "\"{{field}}\" must not exceed 60 characters.",
     "line": "Line {{n}} – {{field}}",
-    "summary": "Please fix: {{list}}"
+    "summary": "Please fix: {{list}}",
+    "import_rows": "The file must contain between 1 and 2000 products."
   },
   "error": {
     "internal": "An unexpected error occurred. Try again in a moment; if it keeps happening, contact support.",

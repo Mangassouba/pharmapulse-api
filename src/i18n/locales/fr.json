@@ -35,7 +35,13 @@
     "not_found": "Produit introuvable",
     "barcode_taken": "Ce code-barres est déjà utilisé",
     "insufficient_stock": "Stock insuffisant pour le produit {{name}} (disponible: {{available}}, demandé: {{requested}})",
-    "list_success": "Produits récupérés avec succès"
+    "list_success": "Produits récupérés avec succès",
+    "import_success": "Import terminé : {{created}} produit(s) créé(s), {{updated}} mis à jour.",
+    "import_invalid": "Le fichier contient {{count}} erreur(s). Aucun produit n'a été importé : corrigez le fichier puis réessayez.",
+    "import_line": "Ligne {{n}} : {{message}}",
+    "import_unknown_category": "la catégorie « {{name}} » n'existe pas. Créez-la d'abord ou corrigez son nom.",
+    "import_duplicate_barcode": "le code-barres « {{barcode}} » apparaît plusieurs fois dans le fichier.",
+    "import_deleted_barcode": "le code-barres « {{barcode}} » appartient à un produit supprimé."
   },
   "category": {
     "created": "Catégorie créée",
@@ -133,7 +139,8 @@
     "invalid": "La valeur de « {{field}} » n'est pas valide.",
     "max_length_60": "« {{field}} » ne doit pas dépasser 60 caractères.",
     "line": "Ligne {{n}} – {{field}}",
-    "summary": "Veuillez corriger : {{list}}"
+    "summary": "Veuillez corriger : {{list}}",
+    "import_rows": "Le fichier doit contenir entre 1 et 2000 produits."
   },
   "error": {
     "internal": "Une erreur inattendue est survenue. Réessayez dans un instant ; si le problème continue, contactez le support.",

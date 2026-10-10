@@ -50,6 +50,20 @@ export async function deleteImage(req, res, next) {
   } catch (err) { next(err) }
 }
 
+export async function exportAll(req, res, next) {
+  try {
+    const data = await productService.exportProducts(req.user.pharmacyId)
+    return successResponse(res, { data })
+  } catch (err) { next(err) }
+}
+
+export async function importRows(req, res, next) {
+  try {
+    const data = await productService.importProducts(req.user.pharmacyId, req.user.id, req.body.rows, req)
+    return successResponse(res, { message: req.t('product.import_success', data), data })
+  } catch (err) { next(err) }
+}
+
 export async function stats(req, res, next) {
   try {
     const data = await productService.getProductStats(req.user.pharmacyId)

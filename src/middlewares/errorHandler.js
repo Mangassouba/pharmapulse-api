@@ -52,12 +52,13 @@ export function errorHandler(err, req, res, next) {
     return errorResponse(res, { message: req.t('error.bad_request'), statusCode: err.status || 400 })
   }
 
-  // Errors thrown on purpose ({ statusCode: 4xx, message }) are meant for the user: show them as-is.
+  // Errors thrown on purpose ({ statusCode: 4xx, message, errors? }) are meant for the user: show them as-is.
   // Unexpected errors only show their technical message outside production.
   const statusCode = err.statusCode || err.status || 500
   const expected   = statusCode < 500 && err.message
   return errorResponse(res, {
     message: expected || process.env.NODE_ENV !== 'production' && err.message || req.t('error.internal'),
+    errors: (expected && Array.isArray(err.errors)) ? err.errors : null,
     statusCode,
   })
 }

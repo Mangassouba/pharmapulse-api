@@ -35,7 +35,13 @@
     "not_found": "المنتج غير موجود",
     "barcode_taken": "هذا الرمز الشريطي مستخدم بالفعل",
     "insufficient_stock": "المخزون غير كافٍ لـ {{name}} (المتوفر: {{available}}، المطلوب: {{requested}})",
-    "list_success": "تم جلب المنتجات بنجاح"
+    "list_success": "تم جلب المنتجات بنجاح",
+    "import_success": "اكتمل الاستيراد: تم إنشاء {{created}} منتج وتحديث {{updated}}.",
+    "import_invalid": "يحتوي الملف على {{count}} خطأ. لم يتم استيراد أي منتج: صحّح الملف ثم أعد المحاولة.",
+    "import_line": "السطر {{n}}: {{message}}",
+    "import_unknown_category": "الفئة «{{name}}» غير موجودة. أنشئها أولاً أو صحّح اسمها.",
+    "import_duplicate_barcode": "الرمز الشريطي «{{barcode}}» مكرر في الملف.",
+    "import_deleted_barcode": "الرمز الشريطي «{{barcode}}» يخص منتجاً محذوفاً."
   },
   "category": {
     "created": "تم إنشاء الفئة",
@@ -133,7 +139,8 @@
     "invalid": "قيمة «{{field}}» غير صالحة.",
     "max_length_60": "يجب ألا يتجاوز «{{field}}» 60 حرفًا.",
     "line": "السطر {{n}} – {{field}}",
-    "summary": "يرجى التصحيح: {{list}}"
+    "summary": "يرجى التصحيح: {{list}}",
+    "import_rows": "يجب أن يحتوي الملف على ما بين 1 و2000 منتج."
   },
   "error": {
     "internal": "حدث خطأ غير متوقع. أعد المحاولة بعد قليل، وإذا استمرت المشكلة تواصل مع الدعم.",

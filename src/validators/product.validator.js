@@ -1,6 +1,6 @@
 import { body, query } from 'express-validator'
 
-const UNIT_TYPES = ['PIECE','BOX','BOTTLE','PACKET','TUBE','JAR','VIAL','AMPOULE',
+export const UNIT_TYPES = ['PIECE','BOX','BOTTLE','PACKET','TUBE','JAR','VIAL','AMPOULE',
   'CAPSULE','TABLET','ML','LITER','MG','G','KG','SPRAY','DROP','PATCH','INHALER','SUPPOSITORY','OTHER']
 
 export const productValidator = [
@@ -18,6 +18,11 @@ export const productValidator = [
   body('unit_quantity').optional({ values: 'null' }).isFloat({ min: 0 }).withMessage('validation.min_zero'),
   body('is_divisible').optional().isBoolean(),
   body('prescription_req').optional().isBoolean(),
+]
+
+// Rows already read from the spreadsheet by the frontend; each row is checked by the import service
+export const productImportValidator = [
+  body('rows').isArray({ min: 1, max: 2000 }).withMessage('validation.import_rows'),
 ]
 
 export const productQueryValidator = [

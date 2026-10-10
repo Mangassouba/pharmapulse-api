@@ -3,7 +3,7 @@ import { body } from 'express-validator'
 import * as ctrl from '../controllers/product.controller.js'
 import { authenticate, authorize } from '../middlewares/auth.js'
 import { validate } from '../middlewares/validate.js'
-import { productValidator, productQueryValidator } from '../validators/product.validator.js'
+import { productValidator, productQueryValidator, productImportValidator } from '../validators/product.validator.js'
 
 const router = Router()
 
@@ -14,6 +14,12 @@ router.get('/',       productQueryValidator, validate, ctrl.list)
 
 // GET  /api/products/stats    — aggregate stats
 router.get('/stats',  ctrl.stats)
+
+// GET  /api/products/export   — every active product, unpaginated (the frontend builds the .xlsx)
+router.get('/export', ctrl.exportAll)
+
+// POST /api/products/import   — create / update products from spreadsheet rows (all or nothing)
+router.post('/import', authorize('ADMIN','MANAGER','STOCK_MANAGER'), productImportValidator, validate, ctrl.importRows)
 
 // GET  /api/products/:id      — single product with batches & movements
 router.get('/:id',    ctrl.getOne)
